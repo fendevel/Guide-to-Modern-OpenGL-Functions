@@ -100,7 +100,7 @@ glTextureStorage2D(id, 1, GL_RGBA8, 512, 512);
 glTextureSubImage2D(id, 0, 0, 0, 512, 512, GL_RGBA, GL_UNSIGNED_INT, pixels);
 ```
 
-###### Generateding Mip Maps
+###### Generating Mip Maps
 
 * DSA equivalent of `glGenerateMipmap`.
 
