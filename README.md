@@ -8,7 +8,7 @@ What this is not:
 
 * A guide on modern OpenGL rendering techniques.
 
-When I say modern I'm talking DSA modern, not VBO modern, because that's old modern, so chances are if you don't have at least OpenGL 4.3 this guide wont be of much use.
+When I say modern I'm talking DSA modern, not VBO modern, because that's old modern, I can't tell you what minimal version you need to make use of DSA because it's not clear at all but you can check if you support it yourself with something like glew's `glewIsSupported("ARB_direct_state_access")`.
 
 ## DSA (Direct State Access)
 With DSA we, in theory, can keep our bind count outside of drawing operations at zero, great right? Kinda. If you were to research how to use all the new DSA functions you'd have a hard time finding anywhere where it's all explained, which is what this guide is all about.
@@ -36,10 +36,7 @@ The [wiki page](https://www.opengl.org/wiki/Direct_State_Access) does a fine job
 * DSA equivalent of `glGenTextures`.
 
 ```c
-void glCreateTextures(
-	GLenum target,
- 	GLsizei n,
- 	GLuint *textures);
+void glCreateTextures(GLenum target, GLsizei n, GLuint *textures);
 ```
 
 Unlike `glGenTextures` `glCreateTextures` will create the handle *and* initialize the object which is why the field `GLenum target`  is listed as the internal initialization depends on knowing the type.
@@ -59,10 +56,7 @@ glCreateTextures(GL_TEXTURE_2D, 1, &id);
 * DSA equivalent of `glTexParameterX`
 
 ```c
-void glTextureParameteri(
-	GLuint texture, 
-    GLenum pname, 
-    GLenum param);
+void glTextureParameteri(GLuint texture, GLenum pname, GLenum param);
 ```
 
 There isn't much to say about this family of functions; they're used exactly the same but take in the texture id rather than the texture target.
@@ -164,7 +158,7 @@ Used exactly like its traditional equivalent and automically initializes the obj
 * DSA equivalent of `glBufferData`
 
 ```c
-void glNamedBufferData(GLuint buffer, GLsizei size, const void *data, GLenum usage);
+void glNamedBufferData(GLuint buffer, GLsizei size, const GLvoid *data, GLenum usage);
 ```
 
 Same exact use case as `glBufferData` but instead of requiring the buffer target it takes in the buffer handle itself.
@@ -173,12 +167,7 @@ Same exact use case as `glBufferData` but instead of requiring the buffer target
 * DSA equivalent of `glVertexAttribPointer`.
 
 ```c
-void glVertexAttribFormat(
-	GLuint attribindex,
- 	GLint size,
- 	GLenum type,
- 	GLboolean normalized,
- 	GLuint relativeoffset);
+void glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
 ```
 
 If you aren't familiar with the application of `glVertexAttribPointer` it is called like so:
