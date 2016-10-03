@@ -11,7 +11,7 @@ What this is not:
 When I say modern I'm talking DSA modern, not VBO modern, because that's old modern, I can't tell you what minimal version you need to make use of DSA because it's not clear at all but you can check if you support it yourself with something like glew's `glewIsSupported("ARB_direct_state_access")`.
 
 ## DSA (Direct State Access)
-With DSA we, in theory, can keep our bind count outside of drawing operations at zero, great right? Kinda. If you were to research how to use all the new DSA functions you'd have a hard time finding anywhere where it's all explained, which is what this guide is all about.
+With DSA we, in theory, can keep our bind count outside of drawing operations at zero, great right? Sure, but, if you were to research how to use all the new DSA functions you'd have a hard time finding anywhere where it's all explained, which is what this guide is all about.
 
 ###### DSA Naming Convention
 
