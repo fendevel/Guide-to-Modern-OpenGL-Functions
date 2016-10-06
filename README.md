@@ -280,3 +280,5 @@ glVertexArrayElementBuffer(data->vao, data->ibo);
 
  * [Good-Reads-And-Tips-About-Programming](https://github.com/deccer/Good-Reads-And-Tips-About-Programming), all-around great resource for programmers.
  * Pretty much everything on the [OpenGL wiki](https://www.opengl.org/wiki/).
+ 
+##### Have something you would like me to cover? Let me know!
