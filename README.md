@@ -278,6 +278,8 @@ glVertexArrayElementBuffer(data->vao, data->ibo);
 
 ## Informative articles
 
+ * [DSA EXT specification](https://www.opengl.org/registry/specs/EXT/direct_state_access.txt).
+ * [DSA ARB specification](https://www.opengl.org/registry/specs/ARB/direct_state_access.txt).
  * [Good-Reads-And-Tips-About-Programming](https://github.com/deccer/Good-Reads-And-Tips-About-Programming), all-around great resource for programmers.
  * Pretty much everything on the [OpenGL wiki](https://www.opengl.org/wiki/).
  
