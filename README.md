@@ -8,10 +8,10 @@ What this is not:
 
 * A guide on modern OpenGL rendering techniques.
 
-When I say modern I'm talking DSA modern, not VBO modern, because that's old modern, I can't tell you what minimal version you need to make use of DSA because it's not clear at all but you can check if you support it yourself with something like glew's `glewIsSupported("ARB_direct_state_access")`.
+When I say modern I'm talking DSA modern, not VAO modern, because that's old modern (however I will be covering some stuff from around that version), I can't tell you what minimal version you need to make use of DSA because it's not clear at all but you can check if you support it yourself with something like glew's `glewIsSupported("ARB_direct_state_access")`.
 
 ## DSA (Direct State Access)
-With DSA we, in theory, can keep our bind count outside of drawing operations at zero, great right? Sure, but, if you were to research how to use all the new DSA functions you'd have a hard time finding anywhere where it's all explained, which is what this guide is all about.
+With DSA we, in theory, can keep our bind count outside of drawing operations at zero, great right? Sure, but if you were to research how to use all the new DSA functions you'd have a hard time finding anywhere where it's all explained, which is what this guide is all about.
 
 ###### DSA Naming Convention
 
@@ -276,11 +276,66 @@ glVertexArrayAttribFormat(data->vao, 2, 2, GL_FLOAT, GL_FALSE, 0);
 glVertexArrayElementBuffer(data->vao, data->ibo);
 ```
 
+## Alternative To Texture Atlases
+
+The usage of texture atlases have been commonplace since the days of old and for good reason, less binds. A popular example of its use is in Minecraft and are also almost always used for storing glyphs. 
+
+Khronos recognises the advantages of atlases and devised a new set of texture types named GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY, and GL_TEXTURE_CUBE_MAP_ARRAY.
+
+The point of the array is to give you all the advantages of using an atlas minus the inconvenience of having  to mess with texture coords.
+
+To allocate a 2D texture array we do this:
+
+```c
+	GLuint texarray = 0;
+	GLsizei width = 512, height = 512, layers = 3;
+	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texarray);
+	glTextureStorage3D(texarray, 0, GL_RGBA8, width, height, layers);
+```
+
+The lads over at Khronos decided to extend the purpose of `glTextureStorage3D` to be able to accomidate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function and use height as the layer capacity.
+
+Anyway, uploading to individual layers is very straght forward:
+
+```c
+	glTextureSubImage3D(texarray, mipmap_level, offset.x, offset.y, layer, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+```
+
+It's super duper simple.
+
+The largest different between arrays and atlases in terms of implementation lies in the shader.
+
+To bind a texture array to the context you need a specialized sampler called `sampler2DArray`. We will also need a uniform to store the layer id.
+
+```glsl
+#version 450 core
+
+layout (location = 0) out vec4 color;
+layout (location = 0) in vec2 tex0;
+
+uniform sampler2DArray texarray;
+uniform uint diffuse_layer;
+
+float layer2coord(uint capacity, uint layer)
+{
+	return max(0, min(capcity - 1, floor(layer + 0.5)));
+}
+
+void main()
+{
+	color = texture(texarray, vec3(tex0, layer2coord(3, diffuse_layer)));
+}
+```
+
+You can take this way further and set up a little system of arrays containing layer id and texture array id pairs and update it through a UBO or SSBO.
+
+[Official wiki](https://www.khronos.org/opengl/wiki/Array_Texture).
+
 ## Informative articles
 
  * [DSA EXT specification](https://www.opengl.org/registry/specs/EXT/direct_state_access.txt).
  * [DSA ARB specification](https://www.opengl.org/registry/specs/ARB/direct_state_access.txt).
  * [Good-Reads-And-Tips-About-Programming](https://github.com/deccer/Good-Reads-And-Tips-About-Programming), all-around great resource for programmers.
- * Pretty much everything on the [OpenGL wiki](https://www.opengl.org/wiki/).
+ * Pretty much everything from the [OpenGL wiki](https://www.khronos.org/opengl/wiki/).
  
 ##### Have something you would like me to cover? Let me know!
