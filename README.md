@@ -278,7 +278,7 @@ glVertexArrayElementBuffer(data->vao, data->ibo);
 
 ## Alternative To Texture Atlases
 
-The usage of texture atlases have been commonplace since the days of old and for good reason, less binds. A popular example of its use is in Minecraft and are also almost always used for storing glyphs. 
+The usage of texture atlases have been commonplace since the days of old and for good reason: less binds; it avoids the need to switch texture as fequently as you would otherwise. A popular example of its use is in Minecraft and are also almost always used for storing glyphs. 
 
 Khronos recognises the advantages of atlases and devised a new set of texture types named GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY, and GL_TEXTURE_CUBE_MAP_ARRAY.
 
