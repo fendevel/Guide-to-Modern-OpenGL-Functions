@@ -293,7 +293,7 @@ To allocate a 2D texture array we do this:
 	glTextureStorage3D(texarray, 0, GL_RGBA8, width, height, layers);
 ```
 
-The lads over at Khronos decided to extend the purpose of `glTextureStorage3D` to be able to accomidate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function and use height as the layer capacity.
+The lads over at Khronos decided to extend the purpose of `glTextureStorage3D` to be able to accommodate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function and use height as the layer capacity.
 
 Anyway, uploading to individual layers is very straght forward:
 
