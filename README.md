@@ -303,7 +303,7 @@ Anyway, uploading to individual layers is very straightforward:
 
 It's super duper simple.
 
-The largest different between arrays and atlases in terms of implementation lies in the shader.
+The most notable difference between arrays and atlases in terms of implementation lies in the shader.
 
 To bind a texture array to the context you need a specialized sampler called `sampler2DArray`. We will also need a uniform to store the layer id.
 
