@@ -276,6 +276,35 @@ glVertexArrayAttribFormat(data->vao, 2, 2, GL_FLOAT, GL_FALSE, 0);
 glVertexArrayElementBuffer(data->vao, data->ibo);
 ```
 
+## Proper Way Of Retrieving All Uniform Names
+
+Keep in mind the point of this little section is not to call anyone out but to present a more ideal way of going about things.
+
+When I was getting my head around OpenGL years ago I followed a particular YouTube tutor who covered OpenGL in respect to game development and did a pretty good job of it, however, there was one section in one of his videos which always irked me - and that was when he [demonstrated](https://github.com/BennyQBD/3DGameEngine/blob/master/src/com/base/engine/rendering/Shader.java#L176) his way of getting and storing the names of his shader uniforms.
+
+tl;dr: he parsed the shader sources himself! You don't have to do that!
+
+Here is how you should do it:
+
+```cpp
+std::map<std::string, GLint> uniforms;
+GLint uniform_count = 0;
+GLsizei length = 0, size = 0;
+GLenum type = GL_NONE;
+glGetProgramiv(program_name, GL_ACTIVE_UNIFORMS, &uniform_count);
+
+for (GLint i = 0; i < uniform_count; i++)
+{
+	std::array<GLchar, 0xff> uniform_name = {};
+	glGetActiveUniform(program_name, i, uniform_name.size(), &length, &size, &type, uniform_name.data());
+	uniforms[uniform_name.data()] = glGetUniformLocation(program_name, uniform_name.data());
+}
+```
+
+With this you can do things like store the uniform datatype and check it in your uniform update functions.
+
+Though really you should use UBOs instead of regular uniforms when you can.
+
 ## Alternative To Texture Atlases
 
 The usage of texture atlases have been commonplace since the days of old and for good reason: less binds; it avoids the need to switch texture as fequently as you would otherwise. A popular example of its use is in Minecraft and are also almost always used for storing glyphs. 
@@ -287,10 +316,10 @@ The point of the array is to give you all the advantages of using an atlas minus
 To allocate a 2D texture array we do this:
 
 ```c
-	GLuint texarray = 0;
-	GLsizei width = 512, height = 512, layers = 3;
-	glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texarray);
-	glTextureStorage3D(texarray, 0, GL_RGBA8, width, height, layers);
+GLuint texarray = 0;
+GLsizei width = 512, height = 512, layers = 3;
+glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texarray);
+glTextureStorage3D(texarray, 0, GL_RGBA8, width, height, layers);
 ```
 
 The lads over at Khronos decided to extend the purpose of `glTextureStorage3D` to be able to accommodate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function and use height as the layer capacity.
