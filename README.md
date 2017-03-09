@@ -121,7 +121,7 @@ void glGenerateTextureMipmap(GLuint texture);
 
 ###### Uploading Cube Maps
 
-I should briefly point out that in order to upload cube map textures you need to use [`glTextureImage3D`](http://docs.gl/gl4/glTexSubImage3D).
+I should briefly point out that in order to upload cube map textures you need to use [`glTextureSubImage3D`](http://docs.gl/gl4/glTexSubImage3D).
 
 ```c
 glTextureStorage2D(name, 1, GL_RGBA8, bitmap.width, bitmap.height);
