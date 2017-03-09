@@ -171,10 +171,6 @@ None of the DSA glBuffer functions ask for the buffer target and is only require
 ###### glVertexAttribFormat & glBindVertexBuffer
 * DSA equivalent of [`glVertexAttribPointer`](http://docs.gl/gl4/glVertexAttribPointer)
 
-```c
-void glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
-```
-
 If you aren't familiar with the application of [`glVertexAttribPointer`](http://docs.gl/gl4/glVertexAttribPointer) it is used like so:
 
 ```c
