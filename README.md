@@ -33,13 +33,13 @@ The [wiki page](https://www.opengl.org/wiki/Direct_State_Access) does a fine job
 * The texture related calls aren't complex to figure out so let's jump right in.
 
 ###### glCreateTexture
-* DSA equivalent of `glGenTextures`.
+* DSA equivalent of [`glGenTextures`](http://docs.gl/gl4/glGenTextures).
 
 ```c
 void glCreateTextures(GLenum target, GLsizei n, GLuint *textures);
 ```
 
-Unlike `glGenTextures` `glCreateTextures` will create the handle *and* initialize the object which is why the field `GLenum target`  is listed as the internal initialization depends on knowing the type.
+Unlike [`glGenTextures`](http://docs.gl/gl4/glGenTextures) [`glCreateTextures`](http://docs.gl/gl4/glCreateTextures) will create the handle *and* initialize the object which is why the field `GLenum target`  is listed as the internal initialization depends on knowing the type.
 
 So this:
 ```c
@@ -53,7 +53,7 @@ glCreateTextures(GL_TEXTURE_2D, 1, &id);
 
 ###### glTextureParameter
 
-* DSA equivalent of `glTexParameterX`
+* DSA equivalent of [`glTexParameterX`](http://docs.gl/gl4/glTexParameter)
 
 ```c
 void glTextureParameteri(GLuint texture, GLenum pname, GLenum param);
@@ -65,7 +65,7 @@ There isn't much to say about this family of functions; they're used exactly the
 glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 ```
 
-The `glTextureStorage` and `glTextureSubImage` families are the same exact way.
+The [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) and [`glTextureSubImage`](http://docs.gl/gl4/glTexSubImage2D) families are the same exact way.
 
 Time for the big comparison:
 
@@ -94,11 +94,26 @@ glTextureStorage2D(id, 1, GL_RGBA8, 512, 512);
 glTextureSubImage2D(id, 0, 0, 0, 512, 512, GL_RGBA, GL_UNSIGNED_INT, pixels);
 ```
 
+###### glBindTextureUnit
+
+* DSA equivalent of [`glActiveTexture`](http://docs.gl/gl4/glActiveTexture)
+
+Defeats the need to do:
+```c
+glActiveTexture(GL_TEXTURE0 + 3);
+glBindTexture(GL_TEXTURE_2D, name);
+```
+
+And replaces it with a simple:
+```c
+glBindTextureUnit(3, name);
+```
+
 ###### Generating Mip Maps
 
-* DSA equivalent of `glGenerateMipmap`.
+* DSA equivalent of [`glGenerateMipmap`](http://docs.gl/gl4/glGenerateMipmap)
 
-Takes in the texture instead of the texture target.
+Takes in the texture name instead of the texture target.
 
 ```c
 void glGenerateTextureMipmap(GLuint texture);
@@ -106,14 +121,15 @@ void glGenerateTextureMipmap(GLuint texture);
 
 ###### Uploading Cube Maps
 
-I should briefly point out that in order to upload cube map textures you need to use `glTextureImage2DEXT` as far as I know.
+I should briefly point out that in order to upload cube map textures you need to use [`glTextureImage3D`](http://docs.gl/gl4/glTexSubImage3D).
 
 ```c
-for (size_t i = 0; i < 6; i++)
+glTextureStorage2D(name, 1, GL_RGBA8, bitmap.width, bitmap.height);
+
+for (size_t face = 0; face < 6; face++)
 {
-	const Bitmap& bitmap = bitmaps[i];
-	glTextureImage2DEXT(id, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, bitmap.internalFormat, bitmap.width,
-    bitmap.height, 0, bitmap.format, GL_UNSIGNED_INT, bitmap.pixels);
+	const Bitmap& bitmap = bitmaps[face];
+	glTextureSubImage3D(name, 0, 0, 0, face, bitmap.width, bitmap.height, 1, bitmap.format, GL_UNSIGNED_INT, bitmap.pixels);
 }
 ```
 
@@ -121,12 +137,9 @@ for (size_t i = 0; i < 6; i++)
 ------
 ###### glCreateFramebuffers
 
-* DSA equivalent of `glGenFramebuffers`.
+* DSA equivalent of [`glGenFramebuffers`](http://docs.gl/gl4/glGenFramebuffers)
 
-```c
-void glGenFramebuffers(GLsizei n, GLuint* framebuffers);
-```
-Used exactly like `glGenFramebuffers` but initializes the object for you.
+[`glCreateFramebuffers`](http://docs.gl/gl4/glCreateFramebuffers) is used exactly the same but initializes the object for you.
 
 Everything else is pretty much the same but takes in the framebuffer handle instead of the target.
 
@@ -146,38 +159,23 @@ if(glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE
 None of the DSA glBuffer functions ask for the buffer target and is only required to be specified whilst drawing.
 
 ###### glCreateBuffers
-* DSA equivalent of `glGenBuffers`.
+* DSA equivalent of [`glGenBuffers`](http://docs.gl/gl4/glGenBuffers)
 
-```c
-void glCreateBuffers(GLsizei n, GLuint* buffers);
-```
-
-Used exactly like its traditional equivalent and automically initializes the object.
+[`glCreateBuffers`](http://docs.gl/gl4/glGenBuffers) is used exactly like its traditional equivalent and automically initializes the object.
 
 ###### glNamedBufferData
-* DSA equivalent of `glBufferData`
+* DSA equivalent of [`glBufferData`](http://docs.gl/gl4/glBufferData)
 
-```c
-void glNamedBufferData(GLuint buffer, GLsizei size, const GLvoid *data, GLenum usage);
-```
+[`glNamedBufferData`](http://docs.gl/gl4/glBufferData) is just like [`glGenBuffers`](http://docs.gl/gl4/glGenBuffers) but instead of requiring the buffer target it takes in the buffer handle itself.
 
-Same exact use case as `glBufferData` but instead of requiring the buffer target it takes in the buffer handle itself.
-
-###### glVertexAttribFormat
-* DSA equivalent of `glVertexAttribPointer`.
+###### glVertexAttribFormat & glBindVertexBuffer
+* DSA equivalent of [`glVertexAttribPointer`](http://docs.gl/gl4/glVertexAttribPointer)
 
 ```c
 void glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
 ```
 
-If you aren't familiar with the application of `glVertexAttribPointer` it is called like so:
-
-* ***GLuint index***: location of the shader attribute for it to get mapped to. 
-* ***GLint size***: number of components that make up the attribute, ranges from 1 to 4.
-* ***GLenum type***: the type each component is stored as.
-* ***GLboolean normalized***: specifies whether the attribute should be normalized.
-* ***GLsizei stride***: size of each element that makes up the array buffer (in bytes), so a vec3 would be `sizeof(float)*3`.
-* ***const GLvoid(ptr) pointer***: where the attribute begins in he buffer's memory, so a vec4 going after a vec3 would use an offset of `(void*)(sizeof(float)*3)` while the vec would be at zero.
+If you aren't familiar with the application of [`glVertexAttribPointer`](http://docs.gl/gl4/glVertexAttribPointer) it is used like so:
 
 ```c
 struct Vertex { vec3 pos, nrm; vec2 tex; };
@@ -192,24 +190,11 @@ glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offset +
 glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offset += sizeof(vec3)));
 ```
 
-`glVertexAttribFormat` isn't much different:
+[`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) isn't much different, the main thing with it is that it's one out of a two-parter with [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer).
 
-* ***GLuint attribindex***: location of the shader attribute for it to get mapped to.
-* ***GLint size***: number of components that make up the attribute, ranges from 1 to 4.
-* ***GLenum type***: the type each component is stored as.
-* ***GLboolean normalized***: specifies whether the attribute should be normalized.
-* ***GLuint relativeoffset***: the distance between this attribute and the last.
+In order to get out the same effect as the previous code we first need to make a call to [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) to quickly describe the data in the VBO. Despite *Bind* being in the function symbol I'm pretty sure it isn't the same kind as for instance: `glBindTexture`.
 
-In order to get out the same effect as the previous code we first need to make a call to `glBindVertexBuffer` to lightly describe the data in the VBO. Despite *Bind* being in the function symbol I'm pretty sure it isn't the same kind as for instance: `glBindTexture`.
-
-###### glBindVertexBuffer
-
-Here is how `glBindVertexBuffer` is layed out:
-
-* ***GLuint bindingindex***: index of the attribute
-* ***GLuint buffer***: the buffer, like a vbo
-* ***GLintptr offset***: the absolute offset of the attribute data in the buffer, the same as the `const GLvoid* pointer` parameter but no need to cast to a void pointer.
-* ***GLintptr stride***: size of each element that makes up the array buffer.
+Here's how they're bothj put into action:
 
 ```c
 struct Vertex { vec3 pos, nrm; vec2 tex; };
@@ -228,7 +213,7 @@ glVertexAttribFormat(1, 3, GL_FLOAT, GL_FALSE, 0);
 glVertexAttribFormat(2, 2, GL_FLOAT, GL_FALSE, 0);
 ```
 
-If you want to involve VAOs `glEnableVertexArrayAttrib`, `glVertexArrayVertexBuffer` and `glVertexArrayAttribFormat` come into play.
+If you want to involve VAOs [`glEnableVertexArrayAttrib`](http://docs.gl/gl4/glEnableVertexAttribArray), [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) and [`glVertexArrayAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) come into play.
 
 ```c
 glEnableVertexArrayAttrib(vao, 0);
@@ -244,12 +229,9 @@ glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, 0);
 glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, 0);
 ```
 
-The version that takes in the VAO, `glVertexArrayVertexBuffer`, has an equivalent for binding the IBO 
-```c
-void glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer);
-```
+The version that takes in the VAO, [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer), has an equivalent for binding the IBO: [`glVertexArrayElementBuffer`](http://docs.gl/gl4/glVertexArrayElementBuffer).
 
-All together this is how uploading an indexed model with *only* DSA functions should look:
+All together this is how uploading an indexed model with *only* DSA should look:
 
 ```c
 Model* data = Model::Load("test.obj");
@@ -322,7 +304,7 @@ glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texarray);
 glTextureStorage3D(texarray, 0, GL_RGBA8, width, height, layers);
 ```
 
-The lads over at Khronos decided to extend the purpose of `glTextureStorage3D` to be able to accommodate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function and use height as the layer capacity.
+The lads over at Khronos decided to extend the purpose of [`glTextureStorage3D`](http://docs.gl/gl4/glTexStorage3D) to be able to accommodate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function and use height as the layer capacity.
 
 Anyway, uploading to individual layers is very straightforward:
 
