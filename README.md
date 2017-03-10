@@ -345,3 +345,4 @@ You can take this way further and set up a little system of arrays containing la
  * [Good-Reads-And-Tips-About-Programming](https://github.com/deccer/Good-Reads-And-Tips-About-Programming), all-around great resource for programmers.
  * Pretty much everything from the [OpenGL wiki](https://www.khronos.org/opengl/wiki/).
  
+##### Have something you would like me to cover and/or fix? Let me know!
