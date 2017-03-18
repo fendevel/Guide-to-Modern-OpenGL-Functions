@@ -175,15 +175,14 @@ If you aren't familiar with the application of [`glVertexAttribPointer`](http://
 
 ```c
 struct Vertex { vec3 pos, nrm; vec2 tex; };
-unsigned int offset = 0u;
 
 glEnableVertexAttribArray(0);
 glEnableVertexAttribArray(1);
 glEnableVertexAttribArray(2);
 
-glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offset));											
-glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offset += sizeof(vec3)));
-glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offset += sizeof(vec3)));
+glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, pos));
+glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, nrm));
+glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, tex));
 ```
 
 [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) isn't much different, the main thing with it is that it's one out of a two-parter with [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer).
@@ -194,15 +193,14 @@ Here's how they're bothj put into action:
 
 ```c
 struct Vertex { vec3 pos, nrm; vec2 tex; };
-unsigned int offset = 0u;
-    
+ 
 glEnableVertexAttribArray(0);
 glEnableVertexAttribArray(1);
 glEnableVertexAttribArray(2);
 
-glBindVertexBuffer(0, vbo, offset, sizeof(Vertex));
-glBindVertexBuffer(1, vbo, offset += sizeof(vec3), sizeof(Vertex));
-glBindVertexBuffer(2, vbo, offset += sizeof(vec3), sizeof(Vertex));
+glBindVertexBuffer(0, data->vbo, offsetof(Vertex, pos));
+glBindVertexBuffer(1, data->vbo, offsetof(Vertex, nrm));
+glBindVertexBuffer(2, data->vbo, offsetof(Vertex, tex));
     
 glVertexAttribFormat(0, 3, GL_FLOAT, GL_FALSE, 0);
 glVertexAttribFormat(1, 3, GL_FLOAT, GL_FALSE, 0);
@@ -212,17 +210,17 @@ glVertexAttribFormat(2, 2, GL_FLOAT, GL_FALSE, 0);
 If you want to involve VAOs [`glEnableVertexArrayAttrib`](http://docs.gl/gl4/glEnableVertexAttribArray), [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) and [`glVertexArrayAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) come into play.
 
 ```c
-glEnableVertexArrayAttrib(vao, 0);
-glEnableVertexArrayAttrib(vao, 1);
-glEnableVertexArrayAttrib(vao, 2);
+glEnableVertexArrayAttrib(data->vao, 0);
+glEnableVertexArrayAttrib(data->vao, 1);
+glEnableVertexArrayAttrib(data->vao, 2);
     
-glVertexArrayVertexBuffer(vao, 0, vbo, offset, sizeof(Vertex));
-glVertexArrayVertexBuffer(vao, 1, vbo, offset += sizeof(vec3), sizeof(Vertex));
-glVertexArrayVertexBuffer(vao, 2, vbo, offset += sizeof(vec3), sizeof(Vertex));
+glVertexArrayVertexBuffer(data->vao, 0, data->vbo, offsetof(Vertex, pos));
+glVertexArrayVertexBuffer(data->vao, 1, data->vbo, offsetof(Vertex, nrm));
+glVertexArrayVertexBuffer(data->vao, 2, data->vbo, offsetof(Vertex, tex));
 
-glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, 0);
-glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, 0);
+glVertexArrayAttribFormat(data->vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+glVertexArrayAttribFormat(data->vao, 1, 3, GL_FLOAT, GL_FALSE, 0);
+glVertexArrayAttribFormat(data->vao, 2, 2, GL_FLOAT, GL_FALSE, 0);
 ```
 
 The version that takes in the VAO, [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer), has an equivalent for binding the IBO: [`glVertexArrayElementBuffer`](http://docs.gl/gl4/glVertexArrayElementBuffer).
@@ -231,12 +229,12 @@ All together this is how uploading an indexed model with *only* DSA should look:
 
 ```c
 Model* data = Model::Load("test.obj");
-size_t offset = 0;
+
 glCreateBuffers(1, &data->vbo);	
 glNamedBufferData(data->vbo, sizeof(Vertex)*data->vcount, data->vertices, GL_STATIC_DRAW);
 
 glCreateBuffers(1, &data->ibo);
-glNamedBufferData(data->ibo, sizeof(unsigned int)*data->icount, data->indices, GL_STATIC_DRAW);
+glNamedBufferData(data->ibo, sizeof(uint32_t)*data->icount, data->indices, GL_STATIC_DRAW);
 
 glCreateVertexArrays(1, &data->vao);
 	
@@ -244,13 +242,14 @@ glEnableVertexArrayAttrib(data->vao, 0);
 glEnableVertexArrayAttrib(data->vao, 1);
 glEnableVertexArrayAttrib(data->vao, 2);
 
-glVertexArrayVertexBuffer(data->vao, 0, data->vbo, offset, sizeof(Vertex));
-glVertexArrayVertexBuffer(data->vao, 1, data->vbo, offset += sizeof(float3), sizeof(Vertex));
-glVertexArrayVertexBuffer(data->vao, 2, data->vbo, offset += sizeof(float3), sizeof(Vertex));
+glVertexArrayVertexBuffer(data->vao, 0, data->vbo, offsetof(Vertex, pos));
+glVertexArrayVertexBuffer(data->vao, 1, data->vbo, offsetof(Vertex, nrm));
+glVertexArrayVertexBuffer(data->vao, 2, data->vbo, offsetof(Vertex, tex));
 
 glVertexArrayAttribFormat(data->vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
 glVertexArrayAttribFormat(data->vao, 1, 3, GL_FLOAT, GL_FALSE, 0);
 glVertexArrayAttribFormat(data->vao, 2, 2, GL_FLOAT, GL_FALSE, 0);
+
 glVertexArrayElementBuffer(data->vao, data->ibo);
 ```
 
