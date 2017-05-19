@@ -1,5 +1,9 @@
 # A Guide to Modern OpenGL Functions
 
+## Index
+
+[DSA](#dsa-direct-state-access)
+
 What this is:
 
  * A guide on how to properly apply scarcely documented modern OpenGL functions.
