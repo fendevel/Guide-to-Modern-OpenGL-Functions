@@ -3,12 +3,19 @@
 ## Index
 
 [DSA](#dsa-direct-state-access)
+
 [glTexture](#gltexture)
+
 [glFramebuffer](#glframebuffer)
+
 [glBuffer](#glbuffer)
+
 [Proper Way Of Retrieving All Uniform Names](#proper-way-of-retrieving-all-uniform-names)
+
 [Alternative To Texture Atlases](#alternative-to-texture-atlases)
+
 [Faster Reads and Writes with Persistent Mapping](#faster-reads-and-writes-with-persistent-mapping)
+
 [Informative articles](#informative-articles)
 
 What this is:
