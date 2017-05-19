@@ -353,14 +353,13 @@ constexpr GLbitfield
 	storage_flags = GL_DYNAMIC_STORAGE_BIT | mapping_flags;
 ```
 
-* GL_MAP_COHERENT_BIT
-	This flag ensures writes will be seen automagically by the server when done from the client and vice versa.
-* GL_MAP_PERSISTENT_BIT
-	This tells our driver you wish to hold onto the data despite what it's doing.
-* GL_MAP_READ_BIT
-	Lets OpenGL know we wish to read from the buffer so that it doesn't freak out when we do.
-* GL_MAP_WRITE_BIT
-	Lets OpenGL know we're gonna write to it, if you don't specify this *anything could happen*.
+**GL_MAP_COHERENT_BIT**: 	This flag ensures writes will be seen automagically by the server when done from the client and vice versa.
+
+**GL_MAP_PERSISTENT_BIT**: 	This tells our driver you wish to hold onto the data despite what it's doing.
+
+**GL_MAP_READ_BIT**:	Lets OpenGL know we wish to read from the buffer so that it doesn't freak out when we do.
+
+**GL_MAP_WRITE_BIT**:	Lets OpenGL know we're gonna write to it, if you don't specify this *anything could happen*.
 
 If we don't use these flags for the storage creation GL will reject your mapping request with scorn. What's worse is that you absolutely won't know unless you're doing some form of error checking.
 
@@ -373,7 +372,7 @@ Whatever we put in the `const void* data` parameter is arbitrary and marking it 
 
 Here is how we get that pointer we were after:
 ```cpp
-void* ptr = glMapNamedBufferRange(name, 0, size, mapping_flags);
+void* ptr = glMapNamedBufferRange(name, offset, size, mapping_flags);
 ```
 You don't have to map it every frame and I advise against it as it harms overall performance.
 
