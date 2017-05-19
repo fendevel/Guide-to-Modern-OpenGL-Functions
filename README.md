@@ -1,4 +1,4 @@
-# The Guide to Modern OpenGL Functions
+# A Guide to Modern OpenGL Functions
 
 What this is:
 
@@ -32,8 +32,8 @@ The [wiki page](https://www.opengl.org/wiki/Direct_State_Access) does a fine job
 ------
 * The texture related calls aren't complex to figure out so let's jump right in.
 
-###### glCreateTexture
-* DSA equivalent of [`glGenTextures`](http://docs.gl/gl4/glGenTextures).
+###### glCreateTextures
+* [`glCreateTextures`](http://docs.gl/gl4/glCreateTextures) equivalent of [`glGenTextures`](http://docs.gl/gl4/glGenTextures) + [`glBindTexture`](http://docs.gl/gl4/glBindTexture)(for initialization).
 
 ```c
 void glCreateTextures(GLenum target, GLsizei n, GLuint *textures);
@@ -53,7 +53,7 @@ glCreateTextures(GL_TEXTURE_2D, 1, &id);
 
 ###### glTextureParameter
 
-* DSA equivalent of [`glTexParameterX`](http://docs.gl/gl4/glTexParameter)
+* [`glTextureParameter`](http://docs.gl/gl4/glTexParameter) is the equivalent of [`glTexParameterX`](http://docs.gl/gl4/glTexParameter)
 
 ```c
 void glTextureParameteri(GLuint texture, GLenum pname, GLenum param);
@@ -96,9 +96,9 @@ glTextureSubImage2D(id, 0, 0, 0, 512, 512, GL_RGBA, GL_UNSIGNED_INT, pixels);
 
 ###### glBindTextureUnit
 
-* DSA equivalent of [`glActiveTexture`](http://docs.gl/gl4/glActiveTexture)
+* [`glBindTextureUnit`](http://docs.gl/gl4/glBindTextureUnit) is the equivalent of [`glActiveTexture`](http://docs.gl/gl4/glActiveTexture) + [`glBindTexture`](http://docs.gl/gl4/glBindTexture)
 
-Defeats the need to do:
+Defeats the need for:
 ```c
 glActiveTexture(GL_TEXTURE0 + 3);
 glBindTexture(GL_TEXTURE_2D, name);
@@ -111,7 +111,7 @@ glBindTextureUnit(3, name);
 
 ###### Generating Mip Maps
 
-* DSA equivalent of [`glGenerateMipmap`](http://docs.gl/gl4/glGenerateMipmap)
+* [`glGenerateTextureMipmap`](http://docs.gl/gl4/glGenerateMipmap) is the equivalent of [`glGenerateMipmap`](http://docs.gl/gl4/glGenerateMipmap)
 
 Takes in the texture name instead of the texture target.
 
@@ -137,7 +137,7 @@ for (size_t face = 0; face < 6; face++)
 ------
 ###### glCreateFramebuffers
 
-* DSA equivalent of [`glGenFramebuffers`](http://docs.gl/gl4/glGenFramebuffers)
+* [`glCreateFramebuffers`](http://docs.gl/gl4/glCreateFramebuffers) is the equivalent of [`glGenFramebuffers`](http://docs.gl/gl4/glGenFramebuffers)
 
 [`glCreateFramebuffers`](http://docs.gl/gl4/glCreateFramebuffers) is used exactly the same but initializes the object for you.
 
@@ -159,17 +159,17 @@ if(glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE
 None of the DSA glBuffer functions ask for the buffer target and is only required to be specified whilst drawing.
 
 ###### glCreateBuffers
-* DSA equivalent of [`glGenBuffers`](http://docs.gl/gl4/glGenBuffers)
+* [`glCreateBuffers`](glCreateBuffers) is the equivalent of [`glGenBuffers`](http://docs.gl/gl4/glGenBuffers) + [`glBindBuffer`](http://docs.gl/gl4/glBindBuffer)(the initialization part)
 
 [`glCreateBuffers`](http://docs.gl/gl4/glGenBuffers) is used exactly like its traditional equivalent and automically initializes the object.
 
 ###### glNamedBufferData
-* DSA equivalent of [`glBufferData`](http://docs.gl/gl4/glBufferData)
+* [`glNamedBufferData`](http://docs.gl/gl4/glBufferData) is the equivalent of [`glBufferData`](http://docs.gl/gl4/glBufferData)
 
 [`glNamedBufferData`](http://docs.gl/gl4/glBufferData) is just like [`glGenBuffers`](http://docs.gl/gl4/glGenBuffers) but instead of requiring the buffer target it takes in the buffer handle itself.
 
 ###### glVertexAttribFormat & glBindVertexBuffer
-* DSA equivalent of [`glVertexAttribPointer`](http://docs.gl/gl4/glVertexAttribPointer)
+* [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) and [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) are the equivalent of [`glVertexAttribPointer`](http://docs.gl/gl4/glVertexAttribPointer)
 
 If you aren't familiar with the application of [`glVertexAttribPointer`](http://docs.gl/gl4/glVertexAttribPointer) it is used like so:
 
@@ -187,9 +187,9 @@ glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof
 
 [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) isn't much different, the main thing with it is that it's one out of a two-parter with [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer).
 
-In order to get out the same effect as the previous code we first need to make a call to [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) to quickly describe the data in the VBO. Despite *Bind* being in the function symbol I'm pretty sure it isn't the same kind as for instance: `glBindTexture`.
+In order to get out the same effect as the previous code we first need to make a call to [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) to quickly describe the data in the VBO. Despite *Bind* being in the name it isn't the same kind as for instance: `glBindTexture`.
 
-Here's how they're bothj put into action:
+Here's how they're both put into action:
 
 ```c
 struct Vertex { vec3 pos, nrm; vec2 tex; };
@@ -207,7 +207,7 @@ glVertexAttribFormat(1, 3, GL_FLOAT, GL_FALSE, 0);
 glVertexAttribFormat(2, 2, GL_FLOAT, GL_FALSE, 0);
 ```
 
-If you want to involve VAOs [`glEnableVertexArrayAttrib`](http://docs.gl/gl4/glEnableVertexAttribArray), [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) and [`glVertexArrayAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) come into play.
+If you want to involve VAOs [`glEnableVertexArrayAttrib`](http://docs.gl/gl4/glEnableVertexAttribArray) comes into play, and [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) & [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) transform into [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) & [`glVertexArrayAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat).
 
 ```c
 glEnableVertexArrayAttrib(data->vao, 0);
@@ -228,7 +228,7 @@ The version that takes in the VAO, [`glVertexArrayVertexBuffer`](http://docs.gl/
 All together this is how uploading an indexed model with *only* DSA should look:
 
 ```c
-Model* data = Model::Load("test.obj");
+std::unique_ptr<Model> data(Model::Load("test.obj"));
 
 glCreateBuffers(1, &data->vbo);	
 glNamedBufferData(data->vbo, sizeof(Vertex)*data->vcount, data->vertices, GL_STATIC_DRAW);
@@ -257,7 +257,7 @@ glVertexArrayElementBuffer(data->vao, data->ibo);
 
 Keep in mind the point of this little section is not to call anyone out but to present a more ideal way of going about things.
 
-When I was getting my head around OpenGL years ago I followed a particular YouTube tutor who covered OpenGL in respect to game development and did a pretty good job of it, however, there was one section in one of his videos which always irked me - and that was when he [demonstrated](https://github.com/BennyQBD/3DGameEngine/blob/master/src/com/base/engine/rendering/Shader.java#L176) his way of getting and storing the names of his shader uniforms.
+When I was getting my head around OpenGL I followed a particular YouTube tutor who covered OpenGL in respect to game development and did a pretty good job of it, however, there was one section in one of his videos which always irked me - and that was when he [demonstrated](https://github.com/BennyQBD/3DGameEngine/blob/master/src/com/base/engine/rendering/Shader.java#L176) his way of getting and storing all the names of his shader uniforms.
 
 tl;dr: he parsed the shader sources himself! You don't have to do that!
 
@@ -284,7 +284,7 @@ Though really you should use UBOs instead of regular uniforms when you can.
 
 ## Alternative To Texture Atlases
 
-The usage of texture atlases have been commonplace since the days of old and for good reason: less binds; it avoids the need to switch texture as fequently as you would otherwise. A popular example of its use is in Minecraft and are also almost always used for storing glyphs. 
+The usage of texture atlases have been commonplace since the days of old and for good reason: less binds; it avoids the need to switch textures as fequently as you would otherwise. A popular example of its use is in Minecraft and are also almost always used for storing glyphs. 
 
 Khronos recognises the advantages of atlases and devised a new set of texture types named GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY, and GL_TEXTURE_CUBE_MAP_ARRAY.
 
@@ -299,19 +299,19 @@ glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texarray);
 glTextureStorage3D(texarray, 0, GL_RGBA8, width, height, layers);
 ```
 
-The lads over at Khronos decided to extend the purpose of [`glTextureStorage3D`](http://docs.gl/gl4/glTexStorage3D) to be able to accommodate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function and use height as the layer capacity.
+The lads over at Khronos decided to extend the use case of [`glTextureStorage3D`](http://docs.gl/gl4/glTexStorage3D) to be able to accommodate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function with height as the layer capacity.
 
 Anyway, uploading to individual layers is very straightforward:
 
 ```c
-	glTextureSubImage3D(texarray, mipmap_level, offset.x, offset.y, layer, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+glTextureSubImage3D(texarray, mipmap_level, offset.x, offset.y, layer, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 ```
 
 It's super duper simple.
 
 The most notable difference between arrays and atlases in terms of implementation lies in the shader.
 
-To bind a texture array to the context you need a specialized sampler called `sampler2DArray`. We will also need a uniform to store the layer id.
+To bind a texture array to the context you need a specialized sampler called `samplerXXArray`. We will also need a uniform to store the layer id.
 
 ```glsl
 #version 450 core
@@ -333,7 +333,67 @@ void main()
 }
 ```
 
-You can take this way further and set up a little system of arrays containing layer id and texture array id pairs and update it through a UBO or SSBO.
+Ideally you should calculate the layer coordinate outside of the shader.
+
+You can take this way further and set up a little UBO/SSBO system of arrays containing layer id and texture array id pairs and update which layer id is used with regular uniforms.
+
+Also, I advise against using ubos and ssbos for per object/draw stuff without a plan otherwise you will end up with everything not working as you'd like because the command queue has no involvement during the reads and writes.
+
+## Faster Reads and Writes with Persistent Mapping
+
+[`Persistent mapping`](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_buffer_storage.txt) was introduced in 4.3.
+This will only work for immutable storage so if your buffers are never going to change size anyway I suggest moving to those even if you don't plan on using what I'm going to talk about. OpenGL will take it as a potential optimization hint.
+
+With persistent mapping we can get a pointer to the memory our data is stored at and allow us to easily do very efficiently read and write to it even during drawing operations.
+
+First we need the right flags for both buffer storage creation and the mapping itself:
+```cpp
+constexpr GLbitfield 
+	mapping_flags = GL_MAP_WRITE_BIT | GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT,
+	storage_flags = GL_DYNAMIC_STORAGE_BIT | mapping_flags;
+```
+
+* GL_MAP_COHERENT_BIT
+	This flag ensures writes will be seen automagically by the server when done from the client and vice versa.
+* GL_MAP_PERSISTENT_BIT
+	This tells our driver you wish to hold onto the data despite what it's doing.
+* GL_MAP_READ_BIT
+	Lets OpenGL know we wish to read from the buffer so that it doesn't freak out when we do.
+* GL_MAP_WRITE_BIT
+	Lets OpenGL know we're gonna write to it, if you don't specify this *anything could happen*.
+
+If we don't use these flags for the storage creation GL will reject your mapping request with scorn. What's worse is that you absolutely won't know unless you're doing some form of error checking.
+
+Setting up our immutable storage is very basic:
+```cpp
+glCreateBuffers(1, &name);
+glNamedBufferStorage(name, size, nullptr, storage_flags);
+```
+Whatever we put in the `const void* data` parameter is arbitrary and marking it as `nullptr` specifies we wish not to copy any data into it.
+
+Here is how we get that pointer we were after:
+```cpp
+void* ptr = glMapNamedBufferRange(name, 0, size, mapping_flags);
+```
+You don't have to map it every frame and I advise against it as it harms overall performance.
+
+Make sure to unmap the buffer before deleting it:
+```cpp
+glUnmapNamedBuffer(name);
+glDeleteBuffers(1, &name);
+```
+
+Congratulations, you can now do `vertices[i] = Vertex{ ... };` whenever you like!
+This means you can also use existing memory manipulation functions for copying, clearing, etc.
+
+If you are going by the C++ standard I would strongly recommend storing the pointer somewhere difficult to derp on like a span:
+```cpp
+gsl::span<Vertex> vertices(reinterpret_cast<Vertex*>(glMapNamedBufferRange(name, 0, size, mapping_flags)), size);
+```
+
+`gsl::span<T>` is a non-owning container described in the [`C++ Core Guidelines`](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) github page and is available to use through Microsoft's implementation: the [`Guideline Support Library`](https://github.com/Microsoft/GSL).
+
+Because it uses the standard STL container interface you can very easily use regular STL functions and ranged loops on it.
 
 [Official wiki](https://www.khronos.org/opengl/wiki/Array_Texture).
 
@@ -341,7 +401,7 @@ You can take this way further and set up a little system of arrays containing la
 
  * [DSA EXT specification](https://www.opengl.org/registry/specs/EXT/direct_state_access.txt).
  * [DSA ARB specification](https://www.opengl.org/registry/specs/ARB/direct_state_access.txt).
- * [Good-Reads-And-Tips-About-Programming](https://github.com/deccer/Good-Reads-And-Tips-About-Programming), all-around great resource for programmers.
+ * [Good-Reads-And-Tips-About-Programming](https://github.com/deccer/Good-Reads-And-Tips-About-Programming), all-around great resource.
  * Pretty much everything from the [OpenGL wiki](https://www.khronos.org/opengl/wiki/).
  
 ##### Have something you would like me to cover and/or fix? Let me know!
