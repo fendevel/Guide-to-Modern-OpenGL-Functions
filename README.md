@@ -362,7 +362,7 @@ Also, I advise against using ubos and ssbos for per object/draw stuff without a 
 [`Persistent mapping`](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_buffer_storage.txt) was introduced in 4.3.
 This will only work for immutable storage so if your buffers are never going to change size anyway I suggest moving to those even if you don't plan on using what I'm going to talk about. OpenGL will take it as a potential optimization hint.
 
-With persistent mapping we can get a pointer to the memory our data is stored at and allow us to easily do very efficiently read and write to it even during drawing operations.
+With persistent mapping we can get a pointer to the memory our data is stored at and allow us to easily and very efficiently read and write to it even during drawing operations.
 
 First we need the right flags for both buffer storage creation and the mapping itself:
 ```cpp
