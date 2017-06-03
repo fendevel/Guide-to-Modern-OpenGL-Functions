@@ -51,7 +51,7 @@ The [wiki page](https://www.opengl.org/wiki/Direct_State_Access) does a fine job
 * The texture related calls aren't complex to figure out so let's jump right in.
 
 ###### glCreateTextures
-* [`glCreateTextures`](http://docs.gl/gl4/glCreateTextures) equivalent of [`glGenTextures`](http://docs.gl/gl4/glGenTextures) + [`glBindTexture`](http://docs.gl/gl4/glBindTexture)(for initialization).
+* [`glCreateTextures`](http://docs.gl/gl4/glCreateTextures) is the equivalent of [`glGenTextures`](http://docs.gl/gl4/glGenTextures) + [`glBindTexture`](http://docs.gl/gl4/glBindTexture)(for initialization).
 
 ```c
 void glCreateTextures(GLenum target, GLsizei n, GLuint *textures);
