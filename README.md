@@ -96,8 +96,8 @@ glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 512, 512);
-glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 512, 512, GL_RGBA, GL_UNSIGNED_INT, pixels);
+glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
+glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_INT, pixels);
 ```
 
 ```c
@@ -108,8 +108,8 @@ glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_CLAMP);
 glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-glTextureStorage2D(id, 1, GL_RGBA8, 512, 512);
-glTextureSubImage2D(id, 0, 0, 0, 512, 512, GL_RGBA, GL_UNSIGNED_INT, pixels);
+glTextureStorage2D(id, 1, GL_RGBA8, width, height);
+glTextureSubImage2D(id, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_INT, pixels);
 ```
 
 ###### glBindTextureUnit
