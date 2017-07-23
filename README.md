@@ -320,7 +320,7 @@ glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texarray);
 glTextureStorage3D(texarray, 0, GL_RGBA8, width, height, layers);
 ```
 
-The lads over at Khronos decided to extend the use case of [`glTextureStorage3D`](http://docs.gl/gl4/glTexStorage3D) to be able to accommodate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function with height as the layer capacity.
+They decided to extend the use case of [`glTextureStorage3D`](http://docs.gl/gl4/glTexStorage3D) to be able to accommodate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function with height as the layer capacity.
 
 Anyway, uploading to individual layers is very straightforward:
 
@@ -403,12 +403,12 @@ glUnmapNamedBuffer(name);
 glDeleteBuffers(1, &name);
 ```
 
-Congratulations, you can now do `vertices[i] = Vertex{ ... };` whenever you like!
+Congratulations, you can now do `vertices[i] = vertex_t{ ... };` whenever you like!
 This means you can also use existing memory manipulation functions for copying, clearing, etc.
 
 If you are going by the C++ standard I would strongly recommend storing the pointer somewhere difficult to derp on like a span:
 ```cpp
-gsl::span<Vertex> vertices(reinterpret_cast<Vertex*>(glMapNamedBufferRange(name, 0, size, mapping_flags)), size);
+gsl::span<vertex_t> vertices(reinterpret_cast<vertex_t*>(glMapNamedBufferRange(name, 0, size, mapping_flags)), size);
 ```
 
 `gsl::span<T>` is a non-owning container described in the [`C++ Core Guidelines`](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) github page and is available to use through Microsoft's implementation: the [`Guideline Support Library`](https://github.com/Microsoft/GSL).
