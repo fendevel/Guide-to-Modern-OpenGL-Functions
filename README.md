@@ -33,7 +33,7 @@ With DSA we, in theory, can keep our bind count outside of drawing operations at
 
 ###### DSA Naming Convention
 
-The [wiki page](https://www.opengl.org/wiki/Direct_State_Access) does a fine job comparing the DSA naming convention to the traditional one but here is the basic table:
+The [wiki page](https://www.opengl.org/wiki/Direct_State_Access) does a fine job comparing the DSA naming convention to the traditional one so I stole their table:
 
 | OpenGL Object Type | Context Object Name | DSA Object Name  |
 | :------------- |:-------------| :-----|
