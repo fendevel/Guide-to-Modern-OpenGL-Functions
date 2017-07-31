@@ -364,7 +364,7 @@ Also, I advise against using ubos and ssbos for per object/draw stuff without a 
 
 ## Texture Views & Aliases
 
-Texture views allow use to share a section of a texture's storage with an object of a different texture target. *Share* as in there's no copying at all, any changes you make to a view is visible to all views that share the storage along with the original texture. This is useful because we can read and write data to these sections as if they were of the target and format the view interprets it as, we are also able to bind and use them as regular textures.
+Texture views allow us to share a section of a texture's storage with an object of a different texture target. *Share* as in there's no copying at all, any changes you make to a view is visible to all views that share the storage along with the original texture. This is useful because we can read and write data to these sections as if they were of the target and format the view interprets it as, we are also able to bind and use them as regular textures.
 
 The original storage is only freed once all references to it are deleted, if you are familiar with C++'s `std::shared_ptr` it's very similar. 
 
