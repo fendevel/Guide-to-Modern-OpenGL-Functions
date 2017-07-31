@@ -14,6 +14,8 @@
 
 [Alternative To Texture Atlases](#alternative-to-texture-atlases)
 
+[Texture Views & Aliases](#texture-views--aliases)
+
 [Faster Reads and Writes with Persistent Mapping](#faster-reads-and-writes-with-persistent-mapping)
 
 [Informative articles](#informative-articles)
@@ -359,6 +361,74 @@ Ideally you should calculate the layer coordinate outside of the shader.
 You can take this way further and set up a little UBO/SSBO system of arrays containing layer id and texture array id pairs and update which layer id is used with regular uniforms.
 
 Also, I advise against using ubos and ssbos for per object/draw stuff without a plan otherwise you will end up with everything not working as you'd like because the command queue has no involvement during the reads and writes.
+
+## Texture Views & Aliases
+
+Texture views allow use to share a section of a texture's storage with an object of a different texture target. *Share* as in there's no copying at all, any changes you make to a view is visible to all views that share the storage along with the original texture. This is useful because we can read and write data to these sections as if they were of the target and format the view interprets it as, we are also able to bind and use them as regular textures.
+
+The original storage is only freed once all references to it are deleted, if you are familiar with C++'s `std::shared_ptr` it's very similar. 
+
+We can only make views if we use a target and format which is compatible with our original texture, here are some tables from the [wiki](https://www.khronos.org/opengl/wiki/Texture_Storage#View_texture_aliases):
+
+
+| Original Targets|Compatible New Targets|
+|:----------------|:---------------------|
+| GL_TEXTURE_1D	|GL_TEXTURE_1D, GL_TEXTURE_1D_ARRAY|
+| GL_TEXTURE_2D |GL_TEXTURE_2D, GL_TEXTURE_2D_ARRAY|
+| GL_TEXTURE_3D	|GL_TEXTURE_3D|
+| GL_TEXTURE_CUBE_MAP |GL_TEXTURE_CUBE_MAP, GL_TEXTURE_2D, GL_TEXTURE_2D_ARRAY, GL_TEXTUER_CUBE_MAP_ARRAY|
+| GL_TEXTURE_RECTANGLE |GL_TEXTURE_RECTANGLE|
+| GL_TEXTURE_BUFFER |none. Cannot be used with this function.|
+| GL_TEXTURE_1D_ARRAY |GL_TEXTURE_1D, GL_TEXTURE_1D_ARRAY|
+| GL_TEXTURE_2D_ARRAY |GL_TEXTURE_2D, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_2D_ARRAY, GL_TEXTUER_CUBE_MAP_ARRAY|
+| GL_TEXTURE_CUBE_MAP_ARRAY | GL_TEXTURE_CUBE_MAP, GL_TEXTURE_2D, GL_TEXTURE_2D_ARRAY, GL_TEXTUER_CUBE_MAP_ARRAY|
+| GL_TEXTURE_2D_MULTISAMPLE |GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY|
+| GL_TEXTURE_2D_MULTISAMPLE_ARRAY |GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY|
+
+| Class	| Internal Formats |
+|:------|:-----------------|
+| 128-bit |	GL_RGBA32F, GL_RGBA32UI, GL_RGBA32I |
+| 96-bit |GL_RGB32F, GL_RGB32UI, GL_RGB32I |
+| 64-bit |GL_RGBA16F, GL_RG32F, GL_RGBA16UI, GL_RG32UI, GL_RGBA16I, GL_RG32I, GL_RGBA16, GL_RGBA16_SNORM |
+| 48-bit |GL_RGB16, GL_RGB16_SNORM, GL_RGB16F, GL_RGB16UI, GL_RGB16I |
+| 32-bit |GL_RG16F, GL_R11F_G11F_B10F, GL_R32F, GL_RGB10_A2UI, GL_RGBA8UI, GL_RG16UI, GL_R32UI, GL_RGBA8I, GL_RG16I, GL_R32I, GL_RGB10_A2, GL_RGBA8, GL_RG16, GL_RGBA8_SNORM, GL_RG16_SNORM, GL_SRGB8_ALPHA8, GL_RGB9_E5 |
+| 24-bit |GL_RGB8, GL_RGB8_SNORM, GL_SRGB8, GL_RGB8UI, GL_RGB8I |
+| 16-bit |GL_R16F, GL_RG8UI, GL_R16UI, GL_RG8I, GL_R16I, GL_RG8, GL_R16, GL_RG8_SNORM, GL_R16_SNORM |
+| 8-bit	|GL_R8UI, GL_R8I, GL_R8, GL_R8_SNORM |
+| GL_VIEW_CLASS_RGTC1_RED	|GL_COMPRESSED_RED_RGTC1, GL_COMPRESSED_SIGNED_RED_RGTC1 |
+| GL_VIEW_CLASS_RGTC2_RG	|GL_COMPRESSED_RG_RGTC2, GL_COMPRESSED_SIGNED_RG_RGTC2 |
+| GL_VIEW_CLASS_BPTC_UNORM	|GL_COMPRESSED_RGBA_BPTC_UNORM, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM |
+| GL_VIEW_CLASS_BPTC_FLOAT	|GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT, GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT |
+
+S3TC texture view compatibility
+
+|Class | Internal formats |
+|:-----|:-----------------|
+| GL_S3TC_DXT1_RGB	|GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_SRGB_S3TC_DXT1_EXT		 |
+| GL_S3TC_DXT1_RGBA	|GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT|
+| GL_S3TC_DXT3_RGBA	|GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT|
+| GL_S3TC_DXT5_RGBA	|GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT|
+
+Making the view itself is extremely simple, it's only two function calls: [`glGenTextures`](http://docs.gl/gl4/glGenTextures) & [`glTextureView`](http://docs.gl/gl4/glTextureView).
+
+Despite this being about modern OpenGL [`glGenTextures`](http://docs.gl/gl4/glGenTextures) has an important role here: we need only an available texture name and nothing more; this needs to be a completely empty uninitialized object and since this function only handles the generation of a valid handle it's perfect for this.
+
+[`glTextureView`](http://docs.gl/gl4/glTextureView) is what will do the main view creation.
+
+If we were to have a typical 2d texture array and needed a view of layer 5 in isolation this is how it would look:
+
+```c
+glGenTextures(1, &view_name);
+glTextureView(view_name, GL_TEXTURE_2D, texarray_name, GL_RGBA8, min_level, level_count, 5, 1);
+```
+
+With this you can bind layer 5 alone as a `GL_TEXTURE_2D` texture.
+
+This is the exact same when dealing with cube maps, the layer parameters will correspond to the cube faces with the layer params of cube map arrays being `cubemap_layer * 6 + face_layer`.
+
+Outside the storage sharing property views are pretty much just regular texture objects, this means we can make views of other views and have some fun viewseption magic, we could have views from slices of a larger view array.
+
+The fact that we can specify which mipmaps we want in the view means that we can have views which are just of those specific mipmap levels, so for example you could make textures views of the *N*th mipmap level of a bunch of textures and use only those for expensive texture dependant lighting calculations.
 
 ## Faster Reads and Writes with Persistent Mapping
 
