@@ -20,7 +20,7 @@
 
 [Faster Reads and Writes with Persistent Mapping](#faster-reads-and-writes-with-persistent-mapping)
 
-[Informative articles](#informative-articles)
+[More Information](#more-information)
 
 What this is:
 
@@ -605,7 +605,7 @@ Because it uses the standard STL container interface you can very easily use reg
 
 [Official wiki](https://www.khronos.org/opengl/wiki/Array_Texture).
 
-## Informative articles
+## More information
 
  * [DSA EXT specification](https://www.opengl.org/registry/specs/EXT/direct_state_access.txt).
  * [DSA ARB specification](https://www.opengl.org/registry/specs/ARB/direct_state_access.txt).
