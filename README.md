@@ -16,6 +16,8 @@
 
 [Texture Views & Aliases](#texture-views--aliases)
 
+[Setting up Mix & Match Shaders with Program Pipelines](#setting-up-mix--match-shaders-with-program-pipelines)
+
 [Faster Reads and Writes with Persistent Mapping](#faster-reads-and-writes-with-persistent-mapping)
 
 [Informative articles](#informative-articles)
@@ -429,6 +431,122 @@ This is the exact same when dealing with cube maps, the layer parameters will co
 Outside the storage sharing property views are pretty much just regular texture objects, this means we can make views of other views and have some fun viewseption magic, we could have views from slices of a larger view array.
 
 The fact that we can specify which mipmaps we want in the view means that we can have views which are just of those specific mipmap levels, so for example you could make textures views of the *N*th mipmap level of a bunch of textures and use only those for expensive texture dependant lighting calculations.
+
+## Setting up Mix & Match Shaders with Program Pipelines
+
+[Program Pipeline](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_separate_shader_objects.txt) objects allow us to change shader stages on the fly without having to relink them, this is what most if not all hardware, including game consoles, are targetted towards. OpenGL's default way of tightly packing stages together into a single program allows for better optimization but often it's not worth it when conisdering the benefits of the mix-and-match approach.
+
+To create and set up a simple program pipeline without any debugging looks like this:
+
+```cpp
+std::array<const char*, 1>
+	vs_source = { load_file(".\\main_shader.vs").c_str() },
+	fs_source = { load_file(".\\main_shader.fs").c_str() };
+	
+GLuint 
+	vs = glCreateShaderProgramv(GL_VERTEX_SHADER, 1, vs_source.data()),
+	fs = glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, fs_source.data()),
+	pr = 0;
+		
+glCreateProgramPipelines(1, &pr);
+glUseProgramStages(pr, GL_VERTEX_SHADER_BIT, vs);
+glUseProgramStages(pr, GL_FRAGMENT_SHADER_BIT, fs);
+
+glBindProgramPipeline(pr);
+```
+
+[`glCreateProgramPipelines`](http://docs.gl/gl4/glCreateProgramPipelines) generates the handle and initializes the object, [`glCreateShaderProgramv`](http://docs.gl/gl4/glCreateShaderProgram) generates, initializes, compiles, and links a shader program using the sources given, and [`glUseProgramStages`](http://docs.gl/gl4/glUseProgramStages) attaches the program's stage(s) to the pipeline object. [`glBindProgramPipeline`](http://docs.gl/gl4/glBindProgramPipeline) as you can tell binds the pipeline to the context.
+
+Because our shaders are now looser and flexible we need to get stricter with our input and output variables.
+Either we declare the input and output in the same order with the same names or we make their locations explicitly match through the location qualifier.  
+
+I greatly suggest the latter option for non-blocks, this will allow us to set up a well-defined interface while also being flexible with the naming and ordering.
+Interface blocks also need to match members.
+
+As collateral for needing a stricter interface we also need to declare the built-in input and output blocks we wish to use for every stage.
+
+The built-in block interfaces are defined as ([from the wiki](https://www.khronos.org/opengl/wiki/Built-in_Variable_(GLSL))):
+
+Vertex:
+```glsl
+out gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+};
+```
+
+Tesselation Control:
+```glsl
+ in gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+} gl_in[gl_MaxPatchVertices];
+
+out gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+} gl_out[];
+```
+
+Tesselation Evaluation:
+```glsl
+in gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+} gl_in[gl_MaxPatchVertices];
+
+out gl_PerVertex {
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+};
+```
+
+Geometry:
+```glsl
+in gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+} gl_in[];
+
+out gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+};
+```
+
+An extremely basic vertex shader enabled for use in a pipeline object looks like this:
+```glsl
+#version 450
+
+out gl_PerVertex { vec4 gl_Position; };
+
+layout (location = 0) in vec3 pos;
+layout (location = 1) in vec3 col;
+
+layout (location = 0) out v_out
+{
+    vec3 col;
+} v_out;
+
+void main()
+{
+    v_out.col = col;
+    gl_Position = vec4(pos, 1.0);
+}
+```
 
 ## Faster Reads and Writes with Persistent Mapping
 
