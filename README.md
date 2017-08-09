@@ -550,6 +550,8 @@ void main()
 
 ## Faster Reads and Writes with Persistent Mapping
 
+**note: the speed afforded by this features greatly varies between vendors**
+
 [`Persistent mapping`](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_buffer_storage.txt) was introduced in 4.3.
 This will only work for immutable storage so if your buffers are never going to change size anyway I suggest moving to those even if you don't plan on using what I'm going to talk about. OpenGL will take it as a potential optimization hint.
 
