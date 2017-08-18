@@ -30,7 +30,7 @@ What this is not:
 
 * A guide on modern OpenGL rendering techniques.
 
-When I say modern I'm talking DSA modern, not VAO modern, because that's old modern (however I will be covering some stuff from around that version), I can't tell you what minimal version you need to make use of DSA because it's not clear at all but you can check if you support it yourself with something like glew's `glewIsSupported("ARB_direct_state_access")`.
+When I say modern I'm talking DSA modern, not VAO modern, because that's old modern or "middle" gl (however I will be covering some stuff from around that version), I can't tell you what minimal version you need to make use of DSA because it's not clear at all but you can check if you support it yourself with something like glew's `glewIsSupported("ARB_direct_state_access")`.
 
 ## DSA (Direct State Access)
 With DSA we, in theory, can keep our bind count outside of drawing operations at zero, great right? Sure, but if you were to research how to use all the new DSA functions you'd have a hard time finding anywhere where it's all explained, which is what this guide is all about.
