@@ -289,7 +289,13 @@ tl;dr: he parsed the shader sources himself! You don't have to do that!
 Here is how you should do it:
 
 ```cpp
-std::map<std::string, GLint> uniforms;
+struct uniform_info_t
+{ 
+	GLint location;
+	GLsizei count;
+};
+
+std::map<std::string, uniform_info_t> uniforms;
 GLint uniform_count = 0;
 GLsizei length = 0, size = 0;
 GLenum type = GL_NONE;
@@ -299,8 +305,22 @@ for (GLint i = 0; i < uniform_count; i++)
 {
 	std::array<GLchar, 0xff> uniform_name = {};
 	glGetActiveUniform(program_name, i, uniform_name.size(), &length, &size, &type, uniform_name.data());
-	uniforms[uniform_name.data()] = glGetUniformLocation(program_name, uniform_name.data());
+	
+	uniform_info_t uniform_info = {};
+	uniform_info.location = glGetUniformLocation(program_name, uniform_name.data());
+	uniform_info.count = size;
+	
+	uniforms.emplace(std::make_pair(std::string(uniform_name.data(), length), uniform_info));
 }
+```
+
+Note that the `GLsizei size` parameter refers to the number of locations the uniform takes up with `mat3`, `vec4`, `float`, etc being 1 and any array having the same size as its element count, this means that if you want to modify element 5 of uniform `my_array` you will need to do:
+```cpp
+glProgramUniformXX(program_name, uniforms["my_array[0]"].location + 5, value);
+``` 
+or if you want to modify the whole array:
+```cpp
+glProgramUniformXXv(program_name, uniforms["my_array[0]"].location, uniforms["my_array[0]"].count, my_array);
 ```
 
 With this you can do things like store the uniform datatype and check it in your uniform update functions.
