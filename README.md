@@ -410,7 +410,7 @@ glTextureStorage3D(tileset, 1, GL_RGBA8, tile_w, tile_h, tile_count);
 
 	for (GLsizei i = 0; i < tile_count; i++)
 	{
-		GLint x = (i % tiles_x) * tiles_x, y = (i / tiles_x) * tiles_y;
+		GLint x = (i % tiles_x) * tile_w, y = (i / tiles_x) * tile_h;
 		glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, x, y, 0, tileset, GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, tile_w, tile_h, 1);
 	}
 	glDeleteTextures(1, &temp_tex);
