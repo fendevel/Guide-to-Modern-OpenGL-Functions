@@ -12,7 +12,7 @@
 
 [Proper Way Of Retrieving All Uniform Names](#proper-way-of-retrieving-all-uniform-names)
 
-[Alternative To Texture Atlases](#alternative-to-texture-atlases)
+[Solution To Texture Atlases](#solution-to-texture-atlases)
 
 [Texture Views & Aliases](#texture-views--aliases)
 
@@ -327,7 +327,7 @@ With this you can do things like store the uniform datatype and check it in your
 
 Though really you should use UBOs instead of regular uniforms when you can.
 
-## Alternative To Texture Atlases
+## Solution To Texture Atlases
 
 The usage of texture atlases have been commonplace since the days of old and for good reason: less binds; it avoids the need to switch textures as fequently as you would otherwise. A popular example of its use is in Minecraft and are also almost always used for storing glyphs. 
 
@@ -369,7 +369,7 @@ uniform uint diffuse_layer;
 
 float layer2coord(uint capacity, uint layer)
 {
-	return max(0, min(capcity - 1, floor(layer + 0.5)));
+	return max(0, min(float(capacity - 1), floor(float(layer) + 0.5)));
 }
 
 void main()
@@ -383,6 +383,41 @@ Ideally you should calculate the layer coordinate outside of the shader.
 You can take this way further and set up a little UBO/SSBO system of arrays containing layer id and texture array id pairs and update which layer id is used with regular uniforms.
 
 Also, I advise against using ubos and ssbos for per object/draw stuff without a plan otherwise you will end up with everything not working as you'd like because the command queue has no involvement during the reads and writes.
+
+As a bonus let me tell you an easy way to populate a texture array with parts of an atlas, in our case an rpg tileset.
+
+Modern OpenGL comes with two generic raw memory copying functions: [`glCopyImageSubData`](http://docs.gl/gl4/glCopyImageSubData) and [`glCopyBufferSubData`](http://docs.gl/gl4/glCopyBufferSubData). Here we'll be dealing with [`glCopyImageSubData`](http://docs.gl/gl4/glCopyImageSubData), this function allows us to copy sections of a source image to a region of a destination image.
+We're going to take advantage of its offset and size parameters so that we can copy tiles from every location and paste them in the appropriate layers within our texture array.
+
+Here it is:
+```cpp
+GLsizei image_w, image_h, c, tile_w = 16, tile_h = 16;
+stbi_uc* pixels = stbi_load(".\\textures\\tiles_packed.png", &image_w, &image_h, &c, 4);
+GLuint tileset;
+GLsizei
+	tiles_x = (image_w / tile_w),
+	tiles_y = (image_h / tile_h),
+	tile_count = (image_w / tile_w)*(image_h / tile_h);
+
+glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &tileset);
+glTextureStorage3D(tileset, 1, GL_RGBA8, tile_w, tile_h, tile_count);
+
+{
+	GLuint temp_tex = 0;
+	glCreateTextures(GL_TEXTURE_2D, 1, &temp_tex);
+	glTextureStorage2D(temp_tex, 1, GL_RGBA8, image_w, image_h);
+	glTextureSubImage2D(temp_tex, 0, 0, 0, image_w, image_h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+	for (GLsizei i = 0; i < tile_count; i++)
+	{
+		GLint x = (i % tiles_x), y = (i / tiles_x);
+		glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, x, y, 0, tileset, GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, tile_w, tile_h, 1);
+	}
+	glDeleteTextures(1, &temp_tex);
+}
+
+stbi_image_free(pixels);
+```
 
 ## Texture Views & Aliases
 
