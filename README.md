@@ -392,7 +392,7 @@ We're going to take advantage of its offset and size parameters so that we can c
 Here it is:
 ```cpp
 GLsizei image_w, image_h, c, tile_w = 16, tile_h = 16;
-stbi_uc* pixels = stbi_load(".\\textures\\tiles_packed.png", &image_w, &image_h, &c, 4);
+stbi_uc* pixels = stbi_load(".\\textures\\tiles_packed.png", &image_w, &image_h, &c, STBI_rgb_alpha);
 GLuint tileset;
 GLsizei
 	tiles_x = (image_w / tile_w),
