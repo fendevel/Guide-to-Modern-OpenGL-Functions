@@ -397,7 +397,7 @@ GLuint tileset;
 GLsizei
 	tiles_x = (image_w / tile_w),
 	tiles_y = (image_h / tile_h),
-	tile_count = (image_w / tile_w)*(image_h / tile_h);
+	tile_count = tiles_x*tiles_y;
 
 glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &tileset);
 glTextureStorage3D(tileset, 1, GL_RGBA8, tile_w, tile_h, tile_count);
