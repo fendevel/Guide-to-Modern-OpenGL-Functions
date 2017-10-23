@@ -13,6 +13,8 @@
     * [Where is glTextureImage?](#where-is-gltextureimage)
 
   * [glFramebuffer](#glframebuffer)
+    * [glCreateFramebuffers](#glcreateframebuffers)
+    * [glBlitNamedFramebuffer](#glblitnamedframebuffer)
 
   * [glBuffer](#glbuffer)
     * [glCreateBuffers](#glcreatebuffers)
@@ -197,6 +199,22 @@ if(glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE
 	printf("framebuffer error");
 ```
 
+###### glBlitNamedFramebuffer
+
+* [`glBlitNamedFramebuffer`](http://docs.gl/gl4/glBlitFramebuffer) is the equivalent of [`glBlitFramebuffer`](http://docs.gl/gl4/glBlitFramebuffer)
+
+The difference here is that we no longer need to bind the two framebuffers and specify which is which through the `GL_READ_FRAMEBUFFER` and `GL_WRITE_FRAMEBUFFER` enums.
+
+```c
+glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo_src);
+glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_dst);
+
+glBlitFramebuffer(src_x, src_y, src_w, src_h, dst_x, dst_y, dst_w, dst_h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+```
+Becomes
+```c
+glBlitNamedFramebuffer(fbo_src, fbo_dst, src_x, src_y, src_w, src_h, dst_x, dst_y, dst_w, dst_h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+```
 
 ### glBuffer
 ------
