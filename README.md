@@ -2,25 +2,29 @@
 
 ## Index
 
-[DSA](#dsa-direct-state-access)
+* [DSA](#dsa-direct-state-access)
+  * [glTexture](#gltexture)
+    * [glCreateTextures](#glcreatetextures)
+    * [glTextureParameter](#gltextureparameter)
+    * [glTextureStorage](#gltexturestorage)
+    * [glBindTextureUnit](#glbindtextureunit)
+    * [Generating Mip Maps](#generating-mip-maps)
+    * [Uploading Cube Maps](#uploading-cube-maps)
+    * [Where is glTextureImage?](#where-is-gltextureimage)
 
-[glTexture](#gltexture)
+  * [glFramebuffer](#glframebuffer)
 
-[glFramebuffer](#glframebuffer)
+  * [glBuffer](#glbuffer)
+    * [glCreateBuffers](#glcreatebuffers)
+    * [glNamedBufferData](#glnamedbufferdata)
+    * [glVertexAttribFormat & glBindVertexBuffer](#glvertexattribformat--glbindvertexbuffer)
 
-[glBuffer](#glbuffer)
-
-[Proper Way Of Retrieving All Uniform Names](#proper-way-of-retrieving-all-uniform-names)
-
-[Solution To Texture Atlases](#solution-to-texture-atlases)
-
-[Texture Views & Aliases](#texture-views--aliases)
-
-[Setting up Mix & Match Shaders with Program Pipelines](#setting-up-mix--match-shaders-with-program-pipelines)
-
-[Faster Reads and Writes with Persistent Mapping](#faster-reads-and-writes-with-persistent-mapping)
-
-[More Information](#more-information)
+* [Proper Way Of Retrieving All Uniform Names](#proper-way-of-retrieving-all-uniform-names)
+* [Solution To Texture Atlases](#solution-to-texture-atlases)
+* [Texture Views & Aliases](#texture-views--aliases)
+* [Setting up Mix & Match Shaders with Program Pipelines](#setting-up-mix--match-shaders-with-program-pipelines)
+* [Faster Reads and Writes with Persistent Mapping](#faster-reads-and-writes-with-persistent-mapping)
+* [More Information](#more-information)
 
 What this is:
 
@@ -86,6 +90,10 @@ There isn't much to say about this family of functions; they're used exactly the
 ```c
 glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 ```
+
+###### glTextureStorage
+
+* [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) is equivalent to [`glTextStorage`](http://docs.gl/gl4/glTexStorage2D).
 
 The [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) and [`glTextureSubImage`](http://docs.gl/gl4/glTexSubImage2D) families are the same exact way.
 
@@ -154,6 +162,20 @@ for (size_t face = 0; face < 6; face++)
 	glTextureSubImage3D(name, 0, 0, 0, face, bitmap.width, bitmap.height, 1, bitmap.format, GL_UNSIGNED_INT, bitmap.pixels);
 }
 ```
+
+###### Where is glTextureImage?
+
+If you look at any OpenGL function list you will notice a lack of `glTextureImage` and here's why:
+
+`glTexImage` left a lot to be desired, people would end up with invalid textures because the default filtering requires several mipmap levels to be present (`GL_NEAREST_MIPMAP_LINEAR` and a `GL_TEXTURE_MAX_LEVEL` of `1000`) with all the mipmap storage needing to be defined manually, you could even give them a bunch of inconsistent sizes and confuse your driver, and that's not all. Because it allows you to specify each level with their own properties it has to check for completeness at draw time and this adds overhead for implementations.
+
+The answer to this was [`glTexStorage`](http://docs.gl/gl4/glTexStorage2D), you wouldn't be wrong in saying it was superseded, and so when it came time to bring out DSA they left the replaced `glTexImage` in the dust.
+
+Storage provided a way to create complete textures with way less room for error, it solves most if not all problems brought on by the mutable way.
+
+tl;dr "Immutable texture is a more robust approach to handle textures"
+
+Sources: ["ARB_texture_storage"](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_texture_storage.txt), ["What does glTexStorage do?"](https://stackoverflow.com/questions/9224300/what-does-gltexstorage-do), ["What's the DSA version of glTexImage2D?"](https://gamedev.stackexchange.com/questions/134177/whats-the-dsa-version-of-glteximage2d)
 
 ### glFramebuffer
 ------
@@ -610,7 +632,7 @@ void main()
 [`Persistent mapping`](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_buffer_storage.txt) was introduced in 4.3.
 This will only work for immutable storage so if your buffers are never going to change size anyway I suggest moving to those even if you don't plan on using what I'm going to talk about. OpenGL will take it as a potential optimization hint.
 
-With persistent mapping we can get a pointer to the memory our data is stored at and allow us to easily and very efficiently read and write to it even during drawing operations.
+With persistent mapping we can get a pointer to a region of memory that OpenGL will be using as a sort of intermediate buffer zone, this will allow us to make reads and writes to this area and let the driver decide when to use the contents.
 
 First we need the right flags for both buffer storage creation and the mapping itself:
 ```cpp
@@ -629,14 +651,14 @@ constexpr GLbitfield
 
 If we don't use these flags for the storage creation GL will reject your mapping request with scorn. What's worse is that you absolutely won't know unless you're doing some form of error checking.
 
-Setting up our immutable storage is very basic:
+Setting up our immutable storage is very simple:
 ```cpp
 glCreateBuffers(1, &name);
 glNamedBufferStorage(name, size, nullptr, storage_flags);
 ```
 Whatever we put in the `const void* data` parameter is arbitrary and marking it as `nullptr` specifies we wish not to copy any data into it.
 
-Here is how we get that pointer we were after:
+Here is how we get that pointer we're after:
 ```cpp
 void* ptr = glMapNamedBufferRange(name, offset, size, mapping_flags);
 ```
