@@ -111,7 +111,7 @@ glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
-glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_INT, pixels);
+glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 ```
 
 ```c
@@ -123,7 +123,7 @@ glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 glTextureStorage2D(id, 1, GL_RGBA8, width, height);
-glTextureSubImage2D(id, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_INT, pixels);
+glTextureSubImage2D(id, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 ```
 
 ###### glBindTextureUnit
@@ -161,7 +161,7 @@ glTextureStorage2D(name, 1, GL_RGBA8, bitmap.width, bitmap.height);
 for (size_t face = 0; face < 6; face++)
 {
 	const Bitmap& bitmap = bitmaps[face];
-	glTextureSubImage3D(name, 0, 0, 0, face, bitmap.width, bitmap.height, 1, bitmap.format, GL_UNSIGNED_INT, bitmap.pixels);
+	glTextureSubImage3D(name, 0, 0, 0, face, bitmap.width, bitmap.height, 1, bitmap.format, GL_UNSIGNED_BYTE, bitmap.pixels);
 }
 ```
 
