@@ -15,6 +15,7 @@
   * [glFramebuffer](#glframebuffer)
     * [glCreateFramebuffers](#glcreateframebuffers)
     * [glBlitNamedFramebuffer](#glblitnamedframebuffer)
+    * [glClearNamedFramebuffer](#glclearnamedframebuffer)
 
   * [glBuffer](#glbuffer)
     * [glCreateBuffers](#glcreatebuffers)
@@ -215,6 +216,41 @@ Becomes
 ```c
 glBlitNamedFramebuffer(fbo_src, fbo_dst, src_x, src_y, src_w, src_h, dst_x, dst_y, dst_w, dst_h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 ```
+
+###### glClearNamedFramebuffer
+
+* [`glClearNamedFramebuffer`](http://docs.gl/gl4/glClearBuffer) is the equivalent of [`glClearBuffer`](http://docs.gl/gl4/glClearBuffer)
+
+There are two ways to go about clearing a framebuffer:
+
+The most familar way
+```c
+glBindFramebuffer(fb);
+glClearColor(r, g, b, a);
+glClearDepth(d);
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+```
+
+and the more versatile way
+```c
+glBindFramebuffer(fb);
+glClearBufferfv(GL_COLOR, col_buff_index, &rgba);
+glClearBufferfv(GL_DEPTH, 0, &d);
+```
+
+`col_buff_index` is the attachment index, so it would be equivalent to `GL_DRAW_BUFFER0 + col_buff_index`, and the draw buffer index for depth is always `0`.
+
+As you can see with `glClearBuffer` we can clear the texels of any attachment to some value, both methods are similar enough that you could reimplement the functions of method 1 using those of method 2.
+
+Despite the name it has nothing to do with buffer objects and this gets cleared up with the DSA version: `glClearNamedFramebuffer` 
+
+So the modern version of method 2 will look like this:
+```c
+glClearNamedFramebufferfv(fb, GL_COLOR, col_buff_index, &rgba);
+glClearNamedFramebufferfv(fb, GL_DEPTH, 0, &d);
+```
+
+`fb` can be `0` if you're clearing the default framebuffer.
 
 ### glBuffer
 ------
