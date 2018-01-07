@@ -231,7 +231,7 @@ glClearDepth(d);
 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 ```
 
-and the more versatile way
+and the more versatile per-attachment way
 ```c
 glBindFramebuffer(fb);
 glClearBufferfv(GL_COLOR, col_buff_index, &rgba);
@@ -244,7 +244,7 @@ As you can see with `glClearBuffer` we can clear the texels of any attachment to
 
 Despite the name it has nothing to do with buffer objects and this gets cleared up with the DSA version: `glClearNamedFramebuffer` 
 
-So the modern version of method 2 will look like this:
+So the DSA version looks like this:
 ```c
 glClearNamedFramebufferfv(fb, GL_COLOR, col_buff_index, &rgba);
 glClearNamedFramebufferfv(fb, GL_DEPTH, 0, &d);
