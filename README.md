@@ -745,4 +745,4 @@ Because it uses the standard STL container interface you can very easily use reg
  * [Good-Reads-And-Tips-About-Programming](https://github.com/deccer/Good-Reads-And-Tips-About-Programming), all-around great resource.
  * Pretty much everything from the [OpenGL wiki](https://www.khronos.org/opengl/wiki/).
  
-##### Have something you would like me to cover and/or fix? Let me know!
+##### Have something you would like me to cover and/or fix? Let me know! My Discord is `Fen#0110`.
