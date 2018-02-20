@@ -570,13 +570,13 @@ The fact that we can specify which mipmaps we want in the view means that we can
 To create and set up a simple program pipeline without any debugging looks like this:
 
 ```cpp
-std::array<const char*, 1>
-	vs_source = { load_file(".\\main_shader.vs").c_str() },
-	fs_source = { load_file(".\\main_shader.fs").c_str() };
+const char*
+	vs_source = load_file(".\\main_shader.vs").c_str() },
+	fs_source = load_file(".\\main_shader.fs").c_str() };
 	
 GLuint 
-	vs = glCreateShaderProgramv(GL_VERTEX_SHADER, 1, vs_source.data()),
-	fs = glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, fs_source.data()),
+	vs = glCreateShaderProgramv(GL_VERTEX_SHADER, 1, &vs_source),
+	fs = glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, &fs_source),
 	pr = 0;
 		
 glCreateProgramPipelines(1, &pr);
