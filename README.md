@@ -571,8 +571,8 @@ To create and set up a simple program pipeline without any debugging looks like 
 
 ```cpp
 const char*
-	vs_source = load_file(".\\main_shader.vs").c_str() },
-	fs_source = load_file(".\\main_shader.fs").c_str() };
+	vs_source = load_file(".\\main_shader.vs").c_str(),
+	fs_source = load_file(".\\main_shader.fs").c_str();
 	
 GLuint 
 	vs = glCreateShaderProgramv(GL_VERTEX_SHADER, 1, &vs_source),
