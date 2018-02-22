@@ -274,6 +274,9 @@ If you aren't familiar with the application of [`glVertexAttribPointer`](http://
 ```c
 struct vertex_t { vec3 pos, nrm; vec2 tex; };
 
+glBindVertexArray(vao);
+glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
 glEnableVertexAttribArray(0);
 glEnableVertexAttribArray(1);
 glEnableVertexAttribArray(2);
@@ -285,13 +288,14 @@ glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)(offset
 
 [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) isn't much different, the main thing with it is that it's one out of a two-parter with [`glVertexAttribBinding`](http://docs.gl/gl4/glVertexAttribBinding).
 
-In order to get out the same effect as the previous code we first need to make a call to [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer). Despite *Bind* being in the name it isn't the same kind as for instance: `glBindTexture`.
+In order to get out the same effect as the previous snippet we first need to make a call to [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer). Despite *Bind* being in the name it isn't the same kind as for instance: `glBindTexture`.
 
 Here's how they're both put into action:
 
 ```c
 struct vertex_t { vec3 pos, nrm; vec2 tex; };
 
+glBindVertexArray(vao);
 glBindVertexBuffer(0, vbo, 0, sizeof(vertex_t));
 
 glEnableVertexAttribArray(0);
@@ -307,7 +311,7 @@ glVertexAttribBinding(1, 0);
 glVertexAttribBinding(2, 0);
 ```
 
-If you want to involve VAOs then [`glEnableVertexAttribArray`](http://docs.gl/gl4/glEnableVertexAttribArray), [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat), [`glVertexAttribBinding`](http://docs.gl/gl4/glVertexAttribBinding), and [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) transform into [`glEnableVertexArrayAttrib`](http://docs.gl/gl4/glEnableVertexAttribArray), [`glVertexArrayAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat), [`glVertexArrayAttribBinding`](http://docs.gl/gl4/glVertexAttribBinding), and [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer).
+Although this is the newer way of going about it this isn't fully DSA as we still need to make that VAO bind call, to go all the way we need to transform [`glEnableVertexAttribArray`](http://docs.gl/gl4/glEnableVertexAttribArray), [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat), [`glVertexAttribBinding`](http://docs.gl/gl4/glVertexAttribBinding), and [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) into [`glEnableVertexArrayAttrib`](http://docs.gl/gl4/glEnableVertexAttribArray), [`glVertexArrayAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat), [`glVertexArrayAttribBinding`](http://docs.gl/gl4/glVertexAttribBinding), and [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer).
 
 ```c
 glVertexArrayVertexBuffer(vao, 0, data->vbo, 0, sizeof(vertex_t));
@@ -325,7 +329,7 @@ glVertexArrayAttribBinding(vao, 1, 0);
 glVertexArrayAttribBinding(vao, 2, 0);
 ```
 
-The version that takes in the VAO, [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer), has an equivalent for binding the IBO: [`glVertexArrayElementBuffer`](http://docs.gl/gl4/glVertexArrayElementBuffer).
+The version that takes in the VAO for binding the VBO, [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer), has an equivalent for the IBO: [`glVertexArrayElementBuffer`](http://docs.gl/gl4/glVertexArrayElementBuffer).
 
 All together this is how uploading an indexed model with *only* DSA should look:
 
