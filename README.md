@@ -274,6 +274,8 @@ If you aren't familiar with the application of [`glVertexAttribPointer`](http://
 ```c
 struct vertex_t { vec3 pos, nrm; vec2 tex; };
 
+glBindVertexArray(vao);
+
 glEnableVertexAttribArray(0);
 glEnableVertexAttribArray(1);
 glEnableVertexAttribArray(2);
@@ -293,6 +295,8 @@ Here's how they're both put into action:
 struct vertex_t { vec3 pos, nrm; vec2 tex; };
 
 glBindVertexBuffer(0, vbo, 0, sizeof(vertex_t));
+
+glBindVertexArray(vao);
 
 glEnableVertexAttribArray(0);
 glEnableVertexAttribArray(1);
