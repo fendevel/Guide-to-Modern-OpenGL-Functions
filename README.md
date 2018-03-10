@@ -360,13 +360,13 @@ glVertexArrayAttribBinding(vao, 2, 0);
 
 ## Proper Way Of Retrieving All Uniform Names
 
-Keep in mind the point of this little section is not to call anyone out but to present a more ideal way of going about things.
+Keep in mind the point of this little section is not to call anyone out but to present a more ideal way of going about this.
 
-When I was getting my head around OpenGL I followed a particular YouTube tutor who covered OpenGL in respect to game development and did a pretty good job of it, however, there was one section in one of his videos which always irked me - and that was when he [demonstrated](https://github.com/BennyQBD/3DGameEngine/blob/master/src/com/base/engine/rendering/Shader.java#L176) his way of getting and storing all the names of his shader uniforms.
+When I was getting my head around the basics of OpenGL I followed a particular YouTube tutor who covered OpenGL in respect to game development and did a pretty good job of it, but there was a section in his series that always irked me - and that was when he [demonstrated](https://github.com/BennyQBD/3DGameEngine/blob/master/src/com/base/engine/rendering/Shader.java#L176) his way of getting and storing all the names of his shader uniforms. "There must be a better way" I thought, and turns out there was! 
 
 tl;dr: he parsed the shader sources himself! You don't have to do that!
 
-Here is how you should do it:
+Here is how it should be done:
 
 ```cpp
 struct uniform_info_t
@@ -614,13 +614,6 @@ out gl_PerVertex
 
 Tesselation Control:
 ```glsl
- in gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-  float gl_ClipDistance[];
-} gl_in[gl_MaxPatchVertices];
-
 out gl_PerVertex
 {
   vec4 gl_Position;
@@ -631,13 +624,6 @@ out gl_PerVertex
 
 Tesselation Evaluation:
 ```glsl
-in gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-  float gl_ClipDistance[];
-} gl_in[gl_MaxPatchVertices];
-
 out gl_PerVertex {
   vec4 gl_Position;
   float gl_PointSize;
@@ -647,12 +633,6 @@ out gl_PerVertex {
 
 Geometry:
 ```glsl
-in gl_PerVertex
-{
-  vec4 gl_Position;
-  float gl_PointSize;
-  float gl_ClipDistance[];
-} gl_in[];
 
 out gl_PerVertex
 {
