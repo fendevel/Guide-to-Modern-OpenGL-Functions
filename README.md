@@ -96,7 +96,7 @@ glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 ###### glTextureStorage
 
-* [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) is equivalent to [`glTextStorage`](http://docs.gl/gl4/glTexStorage2D).
+* [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) is equivalent to [`glTexStorage`](http://docs.gl/gl4/glTexStorage2D).
 
 The [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) and [`glTextureSubImage`](http://docs.gl/gl4/glTexSubImage2D) families are the same exact way.
 
