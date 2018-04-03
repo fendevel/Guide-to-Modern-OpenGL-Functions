@@ -22,6 +22,7 @@
     * [glNamedBufferData](#glnamedbufferdata)
     * [glVertexAttribFormat & glBindVertexBuffer](#glvertexattribformat--glbindvertexbuffer)
 
+* [Storing Index and Vertex Data Under Single Buffer](#storing-index-and-vertex-data-under-single-buffer)
 * [Proper Way Of Retrieving All Uniform Names](#proper-way-of-retrieving-all-uniform-names)
 * [Solution To Texture Atlases](#solution-to-texture-atlases)
 * [Texture Views & Aliases](#texture-views--aliases)
@@ -357,6 +358,33 @@ glVertexArrayAttribBinding(vao, 0, 0);
 glVertexArrayAttribBinding(vao, 1, 0);
 glVertexArrayAttribBinding(vao, 2, 0);
 ```
+
+## Storing Index and Vertex Data Under Single Buffer
+
+Every tutorial and guide under the sun separates them between buffers with even the [vertex_buffer_object](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_vertex_buffer_object.txt) spec suggesting to do so, the idea behind this was that it allows the graphics driver to better decide where and how to store the data but with current hardware this doesn't really benefit us, we've been doing more gl object management than is needed so let's fix this.
+
+All we need to do is store the indices before vertices and tell OpenGL where the vertices start, this is trivial thanks to [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer)'s offset parameter.
+
+```c
+GLuint vao = 0, buffer = 0;
+
+glCreateBuffers(1, &buffer);
+glNamedBufferStorage(buffer, 
+			index_buffer.size() * sizeof(element_t) +
+			vertex_buffer.size() * sizeof(vertex_t), 
+			nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+glNamedBufferSubData(buffer, 0, index_buffer.size() * sizeof(element_t), ind_buffer.data());
+glNamedBufferSubData(buffer, index_buffer.size() * sizeof(element_t), vertex_buffer.size() * sizeof(vertex_t), vertex_buffer.data());
+
+glCreateVertexArrays(1, &vao);
+glVertexArrayVertexBuffer(vao, 0, buffer, index_buffer.size() * sizeof(element_t), sizeof(vertex_t));
+glVertexArrayElementBuffer(vao, buffer);
+
+//continue with usual setup
+```
+
+Uploading it all in a single [`glNamedBufferStorage`](http://docs.gl/gl4/glBufferStorage) call is recommended if you already have the data sharing a border.
 
 ## Proper Way Of Retrieving All Uniform Names
 
