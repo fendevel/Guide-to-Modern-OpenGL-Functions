@@ -422,7 +422,7 @@ for (GLint i = 0; i < uniform_count; i++)
 }
 ```
 
-Note that the `GLsizei size` parameter refers to the number of locations the uniform takes up with `mat3`, `vec4`, `float`, etc being 1 and any array having the same size as its element count, this means that if you want to modify element 5 of uniform `my_array` you will need to do:
+Note that the `GLsizei size` parameter refers to the number of locations the uniform takes up with `mat3`, `vec4`, `float`, etc. being 1 and arrays having it be the number of elements, the locations are arranged in a way that allows you to do `array_location + element_number` to find the location of an element, so if you wanted to write to element `5` it would be done like this:
 ```cpp
 glProgramUniformXX(program_name, uniforms["my_array[0]"].location + 5, value);
 ``` 
@@ -430,10 +430,9 @@ or if you want to modify the whole array:
 ```cpp
 glProgramUniformXXv(program_name, uniforms["my_array[0]"].location, uniforms["my_array[0]"].count, my_array);
 ```
+*Ideally you would use UBOs when dealing with collections of data like arrays and structs.*
 
-With this you can do things like store the uniform datatype and check it in your uniform update functions.
-
-Though really you should use UBOs instead of regular uniforms when you can.
+With this you can store the uniform datatype and check it within your uniform update functions.
 
 ## Solution To Texture Atlases
 
