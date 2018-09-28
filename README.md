@@ -22,9 +22,10 @@
     * [glNamedBufferData](#glnamedbufferdata)
     * [glVertexAttribFormat & glBindVertexBuffer](#glvertexattribformat--glbindvertexbuffer)
 
+* [Detailed Messages with Debug Output](#detailed-messages-with-debug-output)
 * [Storing Index and Vertex Data Under Single Buffer](#storing-index-and-vertex-data-under-single-buffer)
-* [Proper Way Of Retrieving All Uniform Names](#proper-way-of-retrieving-all-uniform-names)
-* [Solution To Texture Atlases](#solution-to-texture-atlases)
+* [Ideal Way Of Retrieving All Uniform Names](#ideal-way-of-retrieving-all-uniform-names)
+* [Texture Atlases vs Arrays](#texture-atlases-vs-arrays)
 * [Texture Views & Aliases](#texture-views--aliases)
 * [Setting up Mix & Match Shaders with Program Pipelines](#setting-up-mix--match-shaders-with-program-pipelines)
 * [Faster Reads and Writes with Persistent Mapping](#faster-reads-and-writes-with-persistent-mapping)
@@ -32,7 +33,7 @@
 
 What this is:
 
- * A guide on how to properly apply scarcely documented modern OpenGL functions.
+* A guide on how to properly apply scarcely documented modern OpenGL functions.
 
 What this is not:
 
@@ -160,7 +161,7 @@ I should briefly point out that in order to upload cube map textures you need to
 ```c
 glTextureStorage2D(name, 1, GL_RGBA8, bitmap.width, bitmap.height);
 
-for (size_t face = 0; face < 6; face++)
+for (size_t face = 0; face < 6; ++face)
 {
 	const Bitmap& bitmap = bitmaps[face];
 	glTextureSubImage3D(name, 0, 0, 0, face, bitmap.width, bitmap.height, 1, bitmap.format, GL_UNSIGNED_BYTE, bitmap.pixels);
@@ -265,7 +266,7 @@ None of the DSA glBuffer functions ask for the buffer target and is only require
 ###### glNamedBufferData
 * [`glNamedBufferData`](http://docs.gl/gl4/glBufferData) is the equivalent of [`glBufferData`](http://docs.gl/gl4/glBufferData)
 
-[`glNamedBufferData`](http://docs.gl/gl4/glBufferData) is just like [`glGenBuffers`](http://docs.gl/gl4/glGenBuffers) but instead of requiring the buffer target it takes in the buffer handle itself.
+[`glNamedBufferData`](http://docs.gl/gl4/glBufferData) is just like [`glBufferData`](http://docs.gl/gl4/glBufferData) but instead of requiring the buffer target it takes in the buffer handle itself.
 
 ###### glVertexAttribFormat & glBindVertexBuffer
 * [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) and [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) are the equivalent of [`glVertexAttribPointer`](http://docs.gl/gl4/glVertexAttribPointer)
@@ -359,26 +360,107 @@ glVertexArrayAttribBinding(vao, 1, 0);
 glVertexArrayAttribBinding(vao, 2, 0);
 ```
 
+## Detailed Messages with Debug Output
+
+[`KHR_debug`](http://www.opengl.org/registry/specs/KHR/debug.txt) has been in core since version 4.3 and it's a big step up from how we used to do error polling.
+
+With [Debug Output](https://www.khronos.org/opengl/wiki/Debug_Output) we can receive meaningful messages on the state of the GL through a callback function that we'll be providing.
+
+All it takes to get running are two calls: [`glEnable`](http://docs.gl/gl4/glEnable) & [`glDebugMessageCallback`](http://docs.gl/gl4/glDebugMessageCallback).
+```cpp
+glEnable(GL_DEBUG_OUTPUT);
+glDebugMessageCallback(message_callback, nullptr);
+```
+
+Your callback must have the signature `void callback(GLenum src, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* msg, void const* user_param)`. 
+
+Here's how I have mine defined:
+
+```cpp
+void message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* message, void const* user_param)
+{
+	auto const src_str = [source]() {
+		switch (source)
+		{
+		case GL_DEBUG_SOURCE_API: return "API";
+		case GL_DEBUG_SOURCE_WINDOW_SYSTEM: return "WINDOW SYSTEM";
+		case GL_DEBUG_SOURCE_SHADER_COMPILER: return "SHADER COMPILER";
+		case GL_DEBUG_SOURCE_THIRD_PARTY: return "THIRD PARTY";
+		case GL_DEBUG_SOURCE_APPLICATION: return "APPLICATION";
+		case GL_DEBUG_SOURCE_OTHER: return "OTHER";
+		}
+	}();
+
+	auto const type_str = [type]() {
+		switch (type)
+		{
+		case GL_DEBUG_TYPE_ERROR: return "ERROR";
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "DEPRECATED_BEHAVIOR";
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: return "UNDEFINED_BEHAVIOR";
+		case GL_DEBUG_TYPE_PORTABILITY: return "PORTABILITY";
+		case GL_DEBUG_TYPE_PERFORMANCE: return "PERFORMANCE";
+		case GL_DEBUG_TYPE_MARKER: return "MARKER";
+		case GL_DEBUG_TYPE_OTHER: return "OTHER";
+		}
+	}();
+
+	auto const severity_str = [severity]() {
+		switch (severity) {
+		case GL_DEBUG_SEVERITY_NOTIFICATION: return "NOTIFICATION";
+		case GL_DEBUG_SEVERITY_LOW: return "LOW";
+		case GL_DEBUG_SEVERITY_MEDIUM: return "MEDIUM";
+		case GL_DEBUG_SEVERITY_HIGH: return "HIGH";
+		}
+	}();
+
+	std::cout << src_str << ", " << type_str << ", " << severity_str << ", " << id << ": " << message << '\n';
+}
+```
+
+There will be times when you want to filter your messages, maybe you're interested in anything but notifications. OpenGL has a function for this: [`glDebugMessageControl`](http://docs.gl/gl4/glDebugMessageControl).
+
+Here's how we use it to disable notifications:
+
+```cpp
+glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
+```
+
+Something we can do is have messages fire synchronously where it will call on the same thread as the context and from within the OpenGL call. This way we can gaurantee function call order and this means if we were to add a breakpoint into the definition of our callback we could traverse the call stack and locate the origin of the error.
+
+All it takes is another call to [`glEnable`](http://docs.gl/gl4/glEnable) with the value of `GL_DEBUG_OUTPUT_SYNCHRONOUS`, so you end up with this:
+
+```cpp
+glEnable(GL_DEBUG_OUTPUT);
+glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+glDebugMessageCallback(message_callback, nullptr);
+```
+
+Farewell, `glGetError`.
+
 ## Storing Index and Vertex Data Under Single Buffer
 
-Every tutorial and guide under the sun separates them between buffers with even the [vertex_buffer_object](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_vertex_buffer_object.txt) spec suggesting to do so, the idea behind this was that it allows the graphics driver to better decide where and how to store the data but with current hardware this doesn't really benefit us, we've been doing more gl object management than is needed so let's fix this.
+Any material on OpenGL separates vertex and index data between buffers, this is because the [vertex_buffer_object](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_vertex_buffer_object.txt) spec strongly urges to do so, the reasoning for this is that different GL implementations may have different memory type requirements, so having the index data in its own buffer allows the driver to decide the optimal storage strategy.
 
-All we need to do is store the indices before vertices and tell OpenGL where the vertices start, this is trivial thanks to [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer)'s offset parameter.
+This was useful when there were were several ways to attach GPUs to the main system, technically there still are, but AGP was completely phased out by PCIe about a decade ago and regular PCI ports aren't really used for this anymore save a few cases.
+
+So managing two buffers for indexed geometry is no longer advantageous.
+
+All we need to do is store the indices before the vertex data and tell OpenGL where the vertices begin, this is achieved with [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer)'s offset parameter.
 
 ```c
 GLuint vao = 0, buffer = 0;
 
-glCreateBuffers(1, &buffer);
-glNamedBufferStorage(buffer, 
-			index_buffer.size() * sizeof(element_t) +
-			vertex_buffer.size() * sizeof(vertex_t), 
-			nullptr, GL_DYNAMIC_STORAGE_BIT);
+GLsizei index_length = index_buffer.size() * sizeof(element_t);
+GLsizei vertex_length = vertex_buffer.size() * sizeof(vertex_t);
 
-glNamedBufferSubData(buffer, 0, index_buffer.size() * sizeof(element_t), ind_buffer.data());
-glNamedBufferSubData(buffer, index_buffer.size() * sizeof(element_t), vertex_buffer.size() * sizeof(vertex_t), vertex_buffer.data());
+glCreateBuffers(1, &buffer);
+glNamedBufferStorage(buffer, index_length + vertex_length, nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+glNamedBufferSubData(buffer, 0, 	    index_length, ind_buffer.data());
+glNamedBufferSubData(buffer, index_length, vertex_length, vertex_buffer.data());
 
 glCreateVertexArrays(1, &vao);
-glVertexArrayVertexBuffer(vao, 0, buffer, index_buffer.size() * sizeof(element_t), sizeof(vertex_t));
+glVertexArrayVertexBuffer(vao, 0, buffer, index_length, sizeof(vertex_t));
 glVertexArrayElementBuffer(vao, buffer);
 
 //continue with usual setup
@@ -386,13 +468,9 @@ glVertexArrayElementBuffer(vao, buffer);
 
 Uploading it all in a single [`glNamedBufferStorage`](http://docs.gl/gl4/glBufferStorage) call is recommended if you already have the data sharing a border.
 
-## Proper Way Of Retrieving All Uniform Names
+## Ideal Way Of Retrieving All Uniform Names
 
-Keep in mind the point of this little section is not to call anyone out but to present a more ideal way of going about this.
-
-When I was getting my head around the basics of OpenGL I followed a particular YouTube tutor who covered OpenGL in respect to game development and did a pretty good job of it, but there was a section in his series that always irked me - and that was when he [demonstrated](https://github.com/BennyQBD/3DGameEngine/blob/master/src/com/base/engine/rendering/Shader.java#L176) his way of getting and storing all the names of his shader uniforms. "There must be a better way" I thought, and turns out there was! 
-
-tl;dr: he parsed the shader sources himself! You don't have to do that!
+There is material out there that teach beginners to retrieve uniform information by manually parsing the shader source strings, please don't do this.
 
 Here is how it should be done:
 
@@ -409,7 +487,7 @@ GLsizei length = 0, size = 0;
 GLenum type = GL_NONE;
 glGetProgramiv(program_name, GL_ACTIVE_UNIFORMS, &uniform_count);
 
-for (GLint i = 0; i < uniform_count; i++)
+for (GLint i = 0; i < uniform_count; ++i)
 {
 	std::array<GLchar, 0xff> uniform_name = {};
 	glGetActiveUniform(program_name, i, uniform_name.size(), &length, &size, &type, uniform_name.data());
@@ -434,13 +512,41 @@ glProgramUniformXXv(program_name, uniforms["my_array[0]"].location, uniforms["my
 
 With this you can store the uniform datatype and check it within your uniform update functions.
 
-## Solution To Texture Atlases
+## Texture Atlases vs Arrays
 
-The usage of texture atlases have been commonplace since the days of old and for good reason: less binds; it avoids the need to switch textures as fequently as you would otherwise. A popular example of its use is in Minecraft and are also almost always used for storing glyphs. 
+Array textures are a great way of managing collections of textures of the same size and format. They allow for using a set of textures without having to bind between them.
 
-Khronos recognises the advantages of atlases and devised a new set of texture types named GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY, and GL_TEXTURE_CUBE_MAP_ARRAY.
+They turn out to be good as an alternative to atlases as long as some criteria are met, that being all the sub-textures, or swatches, fit under the same dimensions and levels.
 
-The point of the array is to give you all the advantages of using an atlas minus the inconvenience of having  to mess with texture coords.
+The advantages of using this over an atlas is that each layer is treated as a separate texture in terms of wrapping and mipmapping.
+
+Array textures come with three targets: `GL_TEXTURE_1D_ARRAY`, `GL_TEXTURE_2D_ARRAY`, and `GL_TEXTURE_CUBE_MAP_ARRAY`.
+
+2D array textures and 3d textures are similar but are semantically different, the differences come in where the mipmap level are and how layers are filtered.
+
+There is no built-in filtering for interpolation between layers where the Z part of a 3d texture will have filtering available. The same goes for 1d arrays and 2d textures.
+
+2d array
+```
+|layer 0 	|
+|	level 1	|
+|	level 2	|
+|layer 1 	|
+|	level 1	|
+|	level 2	|
+...
+```
+
+3d texture
+```
+|z off 0 	|
+|z off 1 	|
+|z off 2 	|
+...
+|	level 1 |
+|	level 2 |
+...
+```
 
 To allocate a 2D texture array we do this:
 
@@ -451,7 +557,7 @@ glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texarray);
 glTextureStorage3D(texarray, 0, GL_RGBA8, width, height, layers);
 ```
 
-They decided to extend the use case of [`glTextureStorage3D`](http://docs.gl/gl4/glTexStorage3D) to be able to accommodate 2d texture arrays which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as a layer specifier, so if you were to allocate a 1D texture array you would have to use the 2D storage function with height as the layer capacity.
+[`glTextureStorage3D`](http://docs.gl/gl4/glTexStorage3D) has been modified to accommodate 2d array textures which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as the layer specifier, so if you were to allocate a 1D texture array you would have to use [`glTextureStorage2D`](http://docs.gl/gl4/glTexStorage2D) with height as the layer capacity.
 
 Anyway, uploading to individual layers is very straightforward:
 
@@ -491,10 +597,12 @@ You can take this way further and set up a little UBO/SSBO system of arrays cont
 
 Also, I advise against using ubos and ssbos for per object/draw stuff without a plan otherwise you will end up with everything not working as you'd like because the command queue has no involvement during the reads and writes.
 
-As a bonus let me tell you an easy way to populate a texture array with parts of an atlas, in our case an rpg tileset.
+As a bonus let me tell you an easy way to populate a texture array with parts of an atlas, in our case a basic rpg tileset.
 
-Modern OpenGL comes with two generic raw memory copying functions: [`glCopyImageSubData`](http://docs.gl/gl4/glCopyImageSubData) and [`glCopyBufferSubData`](http://docs.gl/gl4/glCopyBufferSubData). Here we'll be dealing with [`glCopyImageSubData`](http://docs.gl/gl4/glCopyImageSubData), this function allows us to copy sections of a source image to a region of a destination image.
+Modern OpenGL comes with two generic memory copy functions: [`glCopyImageSubData`](http://docs.gl/gl4/glCopyImageSubData) and [`glCopyBufferSubData`](http://docs.gl/gl4/glCopyBufferSubData). Here we'll be dealing with [`glCopyImageSubData`](http://docs.gl/gl4/glCopyImageSubData), this function allows us to copy sections of a source image to a region of a destination image.
 We're going to take advantage of its offset and size parameters so that we can copy tiles from every location and paste them in the appropriate layers within our texture array.
+
+Image files loaded with [nothings](https://github.com/nothings)' [stb_image](https://github.com/nothings/stb) header library.
 
 Here it is:
 ```cpp
@@ -515,7 +623,7 @@ glTextureStorage3D(tileset, 1, GL_RGBA8, tile_w, tile_h, tile_count);
 	glTextureStorage2D(temp_tex, 1, GL_RGBA8, image_w, image_h);
 	glTextureSubImage2D(temp_tex, 0, 0, 0, image_w, image_h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-	for (GLsizei i = 0; i < tile_count; i++)
+	for (GLsizei i = 0; i < tile_count; ++i)
 	{
 		GLint x = (i % tiles_x) * tile_w, y = (i / tiles_x) * tile_h;
 		glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, x, y, 0, tileset, GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, tile_w, tile_h, 1);
@@ -528,75 +636,40 @@ stbi_image_free(pixels);
 
 ## Texture Views & Aliases
 
-Texture views allow us to share a section of a texture's storage with an object of a different texture target. *Share* as in there's no copying at all, any changes you make to a view is visible to all views that share the storage along with the original texture. This is useful because we can read and write data to these sections as if they were of the target and format the view interprets it as, we are also able to bind and use them as regular textures.
+Texture views allow us to share a section of a texture's storage with an object of a different texture target and/or format. *Share* as in there's no copying of the texture data, any changes you make to a view's data is visible to all views that share the storage along with the original texture object.
+
+Views are mostly indistinguishable from regular texture objects so you can use them as if they are.
 
 The original storage is only freed once all references to it are deleted, if you are familiar with C++'s `std::shared_ptr` it's very similar. 
 
-We can only make views if we use a target and format which is compatible with our original texture, here are some tables from the [wiki](https://www.khronos.org/opengl/wiki/Texture_Storage#View_texture_aliases):
+We can only make views if we use a target and format which is compatible with our original texture, you can read the format tables on the [wiki](https://www.khronos.org/opengl/wiki/Texture_Storage#View_texture_aliases).
 
+Making the view itself is simple, it's only two function calls: [`glGenTextures`](http://docs.gl/gl4/glGenTextures) & [`glTextureView`](http://docs.gl/gl4/glTextureView).
 
-| Original Targets|Compatible New Targets|
-|:----------------|:---------------------|
-| GL_TEXTURE_1D	|GL_TEXTURE_1D, GL_TEXTURE_1D_ARRAY|
-| GL_TEXTURE_2D |GL_TEXTURE_2D, GL_TEXTURE_2D_ARRAY|
-| GL_TEXTURE_3D	|GL_TEXTURE_3D|
-| GL_TEXTURE_CUBE_MAP |GL_TEXTURE_CUBE_MAP, GL_TEXTURE_2D, GL_TEXTURE_2D_ARRAY, GL_TEXTUER_CUBE_MAP_ARRAY|
-| GL_TEXTURE_RECTANGLE |GL_TEXTURE_RECTANGLE|
-| GL_TEXTURE_BUFFER |none. Cannot be used with this function.|
-| GL_TEXTURE_1D_ARRAY |GL_TEXTURE_1D, GL_TEXTURE_1D_ARRAY|
-| GL_TEXTURE_2D_ARRAY |GL_TEXTURE_2D, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_2D_ARRAY, GL_TEXTUER_CUBE_MAP_ARRAY|
-| GL_TEXTURE_CUBE_MAP_ARRAY | GL_TEXTURE_CUBE_MAP, GL_TEXTURE_2D, GL_TEXTURE_2D_ARRAY, GL_TEXTUER_CUBE_MAP_ARRAY|
-| GL_TEXTURE_2D_MULTISAMPLE |GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY|
-| GL_TEXTURE_2D_MULTISAMPLE_ARRAY |GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY|
+Despite this being about modern OpenGL [`glGenTextures`](http://docs.gl/gl4/glGenTextures) has an important role here: we need only an available texture name and nothing more; this needs to be a completely empty uninitialized object and because this function only handles the generation of a valid handle it's perfect for this.
 
-| Class	| Internal Formats |
-|:------|:-----------------|
-| 128-bit |	GL_RGBA32F, GL_RGBA32UI, GL_RGBA32I |
-| 96-bit |GL_RGB32F, GL_RGB32UI, GL_RGB32I |
-| 64-bit |GL_RGBA16F, GL_RG32F, GL_RGBA16UI, GL_RG32UI, GL_RGBA16I, GL_RG32I, GL_RGBA16, GL_RGBA16_SNORM |
-| 48-bit |GL_RGB16, GL_RGB16_SNORM, GL_RGB16F, GL_RGB16UI, GL_RGB16I |
-| 32-bit |GL_RG16F, GL_R11F_G11F_B10F, GL_R32F, GL_RGB10_A2UI, GL_RGBA8UI, GL_RG16UI, GL_R32UI, GL_RGBA8I, GL_RG16I, GL_R32I, GL_RGB10_A2, GL_RGBA8, GL_RG16, GL_RGBA8_SNORM, GL_RG16_SNORM, GL_SRGB8_ALPHA8, GL_RGB9_E5 |
-| 24-bit |GL_RGB8, GL_RGB8_SNORM, GL_SRGB8, GL_RGB8UI, GL_RGB8I |
-| 16-bit |GL_R16F, GL_RG8UI, GL_R16UI, GL_RG8I, GL_R16I, GL_RG8, GL_R16, GL_RG8_SNORM, GL_R16_SNORM |
-| 8-bit	|GL_R8UI, GL_R8I, GL_R8, GL_R8_SNORM |
-| GL_VIEW_CLASS_RGTC1_RED	|GL_COMPRESSED_RED_RGTC1, GL_COMPRESSED_SIGNED_RED_RGTC1 |
-| GL_VIEW_CLASS_RGTC2_RG	|GL_COMPRESSED_RG_RGTC2, GL_COMPRESSED_SIGNED_RG_RGTC2 |
-| GL_VIEW_CLASS_BPTC_UNORM	|GL_COMPRESSED_RGBA_BPTC_UNORM, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM |
-| GL_VIEW_CLASS_BPTC_FLOAT	|GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT, GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT |
-
-S3TC texture view compatibility
-
-|Class | Internal formats |
-|:-----|:-----------------|
-| GL_S3TC_DXT1_RGB	|GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_SRGB_S3TC_DXT1_EXT		 |
-| GL_S3TC_DXT1_RGBA	|GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT|
-| GL_S3TC_DXT3_RGBA	|GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT|
-| GL_S3TC_DXT5_RGBA	|GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT|
-
-Making the view itself is extremely simple, it's only two function calls: [`glGenTextures`](http://docs.gl/gl4/glGenTextures) & [`glTextureView`](http://docs.gl/gl4/glTextureView).
-
-Despite this being about modern OpenGL [`glGenTextures`](http://docs.gl/gl4/glGenTextures) has an important role here: we need only an available texture name and nothing more; this needs to be a completely empty uninitialized object and since this function only handles the generation of a valid handle it's perfect for this.
-
-[`glTextureView`](http://docs.gl/gl4/glTextureView) is what will do the main view creation.
+[`glTextureView`](http://docs.gl/gl4/glTextureView) is how we'll create the view.
 
 If we were to have a typical 2d texture array and needed a view of layer 5 in isolation this is how it would look:
 
 ```c
 glGenTextures(1, &view_name);
-glTextureView(view_name, GL_TEXTURE_2D, texarray_name, GL_RGBA8, min_level, level_count, 5, 1);
+glTextureView(view_name, GL_TEXTURE_2D, src_name, internal_format, min_level, level_count, 5, 1);
 ```
 
 With this you can bind layer 5 alone as a `GL_TEXTURE_2D` texture.
 
-This is the exact same when dealing with cube maps, the layer parameters will correspond to the cube faces with the layer params of cube map arrays being `cubemap_layer * 6 + face_layer`.
+This is the exact same when dealing with cube maps, the layer parameters will correspond to the cube faces with the layer params of cube map arrays being `cubemap_layer * 6 + face`.
 
-Outside the storage sharing property views are pretty much just regular texture objects, this means we can make views of other views and have some fun viewseption magic, we could have views from slices of a larger view array.
+Texture views can be of other views as well, so there could be a texture array, and a view of a section of that array, and another view of a specific layer within that array view. The parameters are relative to the properties of the source. 
 
 The fact that we can specify which mipmaps we want in the view means that we can have views which are just of those specific mipmap levels, so for example you could make textures views of the *N*th mipmap level of a bunch of textures and use only those for expensive texture dependant lighting calculations.
 
+[ARB_texture_view](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_texture_view.txt)
+
 ## Setting up Mix & Match Shaders with Program Pipelines
 
-[Program Pipeline](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_separate_shader_objects.txt) objects allow us to change shader stages on the fly without having to relink them, this is what most if not all hardware, including game consoles, are targetted towards. OpenGL's default way of tightly packing stages together into a single program allows for better optimization but often it's not worth it when conisdering the benefits of the mix-and-match approach.
+[Program Pipeline](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_separate_shader_objects.txt) objects allow us to change shader stages on the fly without having to relink them.
 
 To create and set up a simple program pipeline without any debugging looks like this:
 
@@ -692,11 +765,6 @@ void main()
 
 ## Faster Reads and Writes with Persistent Mapping
 
-**note: the speed afforded by this features greatly varies between vendors**
-
-[`Persistent mapping`](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_buffer_storage.txt) was introduced in 4.3.
-This will only work for immutable storage so if your buffers are never going to change size anyway I suggest moving to those even if you don't plan on using what I'm going to talk about. OpenGL will take it as a potential optimization hint.
-
 With persistent mapping we can get a pointer to a region of memory that OpenGL will be using as a sort of intermediate buffer zone, this will allow us to make reads and writes to this area and let the driver decide when to use the contents.
 
 First we need the right flags for both buffer storage creation and the mapping itself:
@@ -735,25 +803,16 @@ glUnmapNamedBuffer(name);
 glDeleteBuffers(1, &name);
 ```
 
-Congratulations, you can now do `vertices[i] = vertex_t{ ... };` whenever you like!
-This means you can also use existing memory manipulation functions for copying, clearing, etc.
-
-If you are going by the C++ standard I would strongly recommend storing the pointer somewhere difficult to derp on like a span:
+If you're using C++ and GSL you can drop it into a span:
 ```cpp
 gsl::span<vertex_t> vertices(reinterpret_cast<vertex_t*>(glMapNamedBufferRange(name, 0, size, mapping_flags)), size);
 ```
 
-`gsl::span<T>` is a non-owning container described in the [`C++ Core Guidelines`](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) github page and is available to use through Microsoft's implementation: the [`Guideline Support Library`](https://github.com/Microsoft/GSL).
+[`Persistent mapping`](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_buffer_storage.txt)
 
-Because it uses the standard STL container interface you can very easily use regular STL functions and ranged loops on it.
-
-[Official wiki](https://www.khronos.org/opengl/wiki/Array_Texture).
 
 ## More information
-
+ * [OpenGL wiki](https://www.khronos.org/opengl/wiki/).
  * [DSA EXT specification](https://www.opengl.org/registry/specs/EXT/direct_state_access.txt).
  * [DSA ARB specification](https://www.opengl.org/registry/specs/ARB/direct_state_access.txt).
- * [Good-Reads-And-Tips-About-Programming](https://github.com/deccer/Good-Reads-And-Tips-About-Programming), all-around great resource.
- * Pretty much everything from the [OpenGL wiki](https://www.khronos.org/opengl/wiki/).
- 
 ##### Have something you would like me to cover and/or fix? Let me know! My Discord is `Fen#0110`.
