@@ -39,10 +39,10 @@ What this is not:
 
 * A guide on modern OpenGL rendering techniques.
 
-When I say modern I'm talking DSA modern, not VAO modern, because that's old modern or "middle" gl (however I will be covering some stuff from around that version), I can't tell you what minimal version you need to make use of DSA because it's not clear at all but you can check if you support it yourself with something like glew's `glewIsSupported("ARB_direct_state_access")`.
+When I say modern I'm talking DSA modern, not VAO modern, because that's old modern or "middle" GL (however I will be covering some from it), I can't tell you what minimal version you need to make use of DSA because it's not clear at all but you can check if you support it yourself with something like glew's `glewIsSupported("ARB_direct_state_access")` or checking your API version.
 
 ## DSA (Direct State Access)
-With DSA we, in theory, can keep our bind count outside of drawing operations at zero, great right? Sure, but if you were to research how to use all the new DSA functions you'd have a hard time finding anywhere where it's all explained, which is what this guide is all about.
+With DSA we, in theory, can keep our bind count outside of drawing operations at zero. Great right? Sure, but if you were to research how to use all the new DSA functions you'd have a hard time finding anywhere where it's all explained, which is what this guide is all about.
 
 ###### DSA Naming Convention
 
@@ -61,7 +61,7 @@ The [wiki page](https://www.opengl.org/wiki/Direct_State_Access) does a fine job
 
 ### glTexture
 ------
-* The texture related calls aren't complex to figure out so let's jump right in.
+* The texture related calls aren't hard to figure out so let's jump right in.
 
 ###### glCreateTextures
 * [`glCreateTextures`](http://docs.gl/gl4/glCreateTextures) is the equivalent of [`glGenTextures`](http://docs.gl/gl4/glGenTextures) + [`glBindTexture`](http://docs.gl/gl4/glBindTexture)(for initialization).
@@ -74,12 +74,12 @@ Unlike [`glGenTextures`](http://docs.gl/gl4/glGenTextures) [`glCreateTextures`](
 
 So this:
 ```c
-glGenTextures(1, &id);
-glBindTexture(GL_TEXTURE_2D, id);
+glGenTextures(1, &name);
+glBindTexture(GL_TEXTURE_2D, name);
 ```
 DSA-ified becomes:
 ```c
-glCreateTextures(GL_TEXTURE_2D, 1, &id);
+glCreateTextures(GL_TEXTURE_2D, 1, &name);
 ```
 
 ###### glTextureParameter
@@ -90,10 +90,10 @@ glCreateTextures(GL_TEXTURE_2D, 1, &id);
 void glTextureParameteri(GLuint texture, GLenum pname, GLenum param);
 ```
 
-There isn't much to say about this family of functions; they're used exactly the same but take in the texture id rather than the texture target.
+There isn't much to say about this family of functions; they're used exactly the same but take in the texture name rather than the texture target.
 
 ```c
-glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+glTextureParameteri(name, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 ```
 
 ###### glTextureStorage
@@ -105,8 +105,8 @@ The [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) and [`glTextureSubIm
 Time for the big comparison:
 
 ```c
-glGenTextures(1, &id);
-glBindTexture(GL_TEXTURE_2D, id);
+glGenTextures(1, &name);
+glBindTexture(GL_TEXTURE_2D, name);
 
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
@@ -118,15 +118,15 @@ glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE
 ```
 
 ```c
-glCreateTextures(GL_TEXTURE_2D, 1, &id);
+glCreateTextures(GL_TEXTURE_2D, 1, &name);
 
-glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_CLAMP);
-glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_CLAMP);
-glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+glTextureParameteri(name, GL_TEXTURE_WRAP_S, GL_CLAMP);
+glTextureParameteri(name, GL_TEXTURE_WRAP_T, GL_CLAMP);
+glTextureParameteri(name, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+glTextureParameteri(name, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-glTextureStorage2D(id, 1, GL_RGBA8, width, height);
-glTextureSubImage2D(id, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+glTextureStorage2D(name, 1, GL_RGBA8, width, height);
+glTextureSubImage2D(name, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 ```
 
 ###### glBindTextureUnit
@@ -163,7 +163,7 @@ glTextureStorage2D(name, 1, GL_RGBA8, bitmap.width, bitmap.height);
 
 for (size_t face = 0; face < 6; ++face)
 {
-	const Bitmap& bitmap = bitmaps[face];
+	auto const& bitmap = bitmaps[face];
 	glTextureSubImage3D(name, 0, 0, 0, face, bitmap.width, bitmap.height, 1, bitmap.format, GL_UNSIGNED_BYTE, bitmap.pixels);
 }
 ```
@@ -199,7 +199,7 @@ glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, tex, 0);
 glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, depthTex, 0);
 
 if(glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	printf("framebuffer error");
+	log("framebuffer error");
 ```
 
 ###### glBlitNamedFramebuffer
@@ -261,7 +261,7 @@ None of the DSA glBuffer functions ask for the buffer target and is only require
 ###### glCreateBuffers
 * [`glCreateBuffers`](glCreateBuffers) is the equivalent of [`glGenBuffers`](http://docs.gl/gl4/glGenBuffers) + [`glBindBuffer`](http://docs.gl/gl4/glBindBuffer)(the initialization part)
 
-[`glCreateBuffers`](http://docs.gl/gl4/glGenBuffers) is used exactly like its traditional equivalent and automically initializes the object.
+[`glCreateBuffers`](http://docs.gl/gl4/glGenBuffers) is used exactly like its traditional equivalent and automatically initializes the object.
 
 ###### glNamedBufferData
 * [`glNamedBufferData`](http://docs.gl/gl4/glBufferData) is the equivalent of [`glBufferData`](http://docs.gl/gl4/glBufferData)
@@ -765,7 +765,7 @@ void main()
 
 ## Faster Reads and Writes with Persistent Mapping
 
-With persistent mapping we can get a pointer to a region of memory that OpenGL will be using as a sort of intermediate buffer zone, this will allow us to make reads and writes to this area and let the driver decide when to use the contents.
+With [`persistent mapping`](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_buffer_storage.txt) we can get a pointer to a region of memory that OpenGL will be using as a sort of intermediate buffer zone, this will allow us to make reads and writes to this area and let the driver decide when to use the contents.
 
 First we need the right flags for both buffer storage creation and the mapping itself:
 ```cpp
@@ -808,11 +808,8 @@ If you're using C++ and GSL you can drop it into a span:
 gsl::span<vertex_t> vertices(reinterpret_cast<vertex_t*>(glMapNamedBufferRange(name, 0, size, mapping_flags)), size);
 ```
 
-[`Persistent mapping`](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_buffer_storage.txt)
-
-
 ## More information
  * [OpenGL wiki](https://www.khronos.org/opengl/wiki/).
- * [DSA EXT specification](https://www.opengl.org/registry/specs/EXT/direct_state_access.txt).
+ * [docs.GL](http://docs.gl/)
  * [DSA ARB specification](https://www.opengl.org/registry/specs/ARB/direct_state_access.txt).
 ##### Have something you would like me to cover and/or fix? Let me know! My Discord is `Fen#0110`.
