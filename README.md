@@ -33,7 +33,7 @@
 
 What this is:
 
-* A guide on how to properly apply scarcely documented modern OpenGL functions.
+* A guide on how to apply modern OpenGL functionality.
 
 What this is not:
 
@@ -98,7 +98,7 @@ glTextureParameteri(name, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 ###### glTextureStorage
 
-* [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) is equivalent to [`glTexStorage`](http://docs.gl/gl4/glTexStorage2D).
+* [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) is semi-equivalent to [`glTexStorage`](http://docs.gl/gl4/glTexStorage2D) ([Where is glTextureImage?](#where-is-gltextureimage)).
 
 The [`glTextureStorage`](http://docs.gl/gl4/glTexStorage2D) and [`glTextureSubImage`](http://docs.gl/gl4/glTexSubImage2D) families are the same exact way.
 
@@ -170,17 +170,19 @@ for (size_t face = 0; face < 6; ++face)
 
 ###### Where is glTextureImage?
 
-If you look at any OpenGL function list you will notice a lack of `glTextureImage` and here's why:
+If you look at the OpenGL function listing you will see a lack of `glTextureImage` and here's why:
 
-`glTexImage` left a lot to be desired, people would end up with invalid textures because the default filtering requires several mipmap levels to be present (`GL_NEAREST_MIPMAP_LINEAR` and a `GL_TEXTURE_MAX_LEVEL` of `1000`) with all the mipmap storage needing to be defined manually, you could even give them a bunch of inconsistent sizes and confuse your driver, and that's not all. Because it allows you to specify each level with their own properties it has to check for completeness at draw time and this adds overhead for implementations.
+`glTexImage` left a lot to be desired, it's very easy to end up with invalid textures because the default filtering requires several mipmap levels to be present (`GL_NEAREST_MIPMAP_LINEAR` and a `GL_TEXTURE_MAX_LEVEL` of `1000`) with all the mipmap storage needing to be specified individually, you could even give them a bunch of inconsistent sizes and the driver would only check for consistency at draw time.
 
-The answer to this was [`glTexStorage`](http://docs.gl/gl4/glTexStorage2D), you wouldn't be wrong in saying it was superseded, and so when it came time to bring out DSA they left the replaced `glTexImage` in the dust.
+The answer to this was [`glTexStorage`](http://docs.gl/gl4/glTexStorage2D), when it came time for DSA they left the replaced `glTexImage` in the dust.
 
-Storage provided a way to create complete textures with way less room for error, it solves most if not all problems brought on by the mutable way.
+Storage provides a way to create complete textures with checks done on-call, which means less room for error, it solves most if not all problems brought on by mutable textures. 
 
-tl;dr "Immutable texture is a more robust approach to handle textures"
+tl;dr "Immutable textures are a more robust approach to handle textures"
 
-Sources: ["ARB_texture_storage"](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_texture_storage.txt), ["What does glTexStorage do?"](https://stackoverflow.com/questions/9224300/what-does-gltexstorage-do), ["What's the DSA version of glTexImage2D?"](https://gamedev.stackexchange.com/questions/134177/whats-the-dsa-version-of-glteximage2d)
+* However be mindful as allocating immutable textures requires physical video memory to be available upfront rather than having the driver deal with when and where the data goes, this means it's very possible to unintentionally exceed your card's capacity. 
+
+Sources: [ARB_texture_storage](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_texture_storage.txt), ["What does glTexStorage do?"](https://stackoverflow.com/questions/9224300/what-does-gltexstorage-do), ["What's the DSA version of glTexImage2D?"](https://gamedev.stackexchange.com/questions/134177/whats-the-dsa-version-of-glteximage2d)
 
 ### glFramebuffer
 ------
@@ -192,14 +194,14 @@ Sources: ["ARB_texture_storage"](https://www.khronos.org/registry/OpenGL/extensi
 
 Everything else is pretty much the same but takes in the framebuffer handle instead of the target.
 
-```c
+```cpp
 glCreateFramebuffers(1, &fbo);
 
 glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, tex, 0);
 glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, depthTex, 0);
 
 if(glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	log("framebuffer error");
+	std::cerr << "framebuffer error\n";
 ```
 
 ###### glBlitNamedFramebuffer
@@ -447,26 +449,31 @@ So managing two buffers for indexed geometry is no longer advantageous.
 
 All we need to do is store the indices before the vertex data and tell OpenGL where the vertices begin, this is achieved with [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer)'s offset parameter.
 
-```c
-GLuint vao = 0, buffer = 0;
+```cpp
+GLint alignment = GL_NONE;
+glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment);
 
-GLsizei index_length = index_buffer.size() * sizeof(element_t);
-GLsizei vertex_length = vertex_buffer.size() * sizeof(vertex_t);
+GLuint vao 	= GL_NONE;
+GLuint buffer 	= GL_NONE;
+
+auto const ind_len = GLsizei(ind_buffer.size() * sizeof(element_t));
+auto const vrt_len = GLsizei(vrt_buffer.size() * sizeof(vertex_t));
+
+auto const ind_len_aligned = align(ind_len, alignment);
+auto const vrt_len_aligned = align(vrt_len, alignment);
 
 glCreateBuffers(1, &buffer);
-glNamedBufferStorage(buffer, index_length + vertex_length, nullptr, GL_DYNAMIC_STORAGE_BIT);
+glNamedBufferStorage(buffer, ind_len_aligned + vrt_len_aligned, nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-glNamedBufferSubData(buffer, 0, 	    index_length, ind_buffer.data());
-glNamedBufferSubData(buffer, index_length, vertex_length, vertex_buffer.data());
+glNamedBufferSubData(buffer, 0		    , ind_len, ind_buffer.data());
+glNamedBufferSubData(buffer, ind_len_aligned, vrt_len, vrt_buffer.data());
 
 glCreateVertexArrays(1, &vao);
-glVertexArrayVertexBuffer(vao, 0, buffer, index_length, sizeof(vertex_t));
+glVertexArrayVertexBuffer(vao, 0, buffer, ind_len_aligned, sizeof(vertex_t));
 glVertexArrayElementBuffer(vao, buffer);
 
-//continue with usual setup
+//continue with setup
 ```
-
-Uploading it all in a single [`glNamedBufferStorage`](http://docs.gl/gl4/glBufferStorage) call is recommended if you already have the data sharing a border.
 
 ## Ideal Way Of Retrieving All Uniform Names
 
@@ -481,22 +488,31 @@ struct uniform_info_t
 	GLsizei count;
 };
 
-std::map<std::string, uniform_info_t> uniforms;
 GLint uniform_count = 0;
-GLsizei length = 0, size = 0;
-GLenum type = GL_NONE;
 glGetProgramiv(program_name, GL_ACTIVE_UNIFORMS, &uniform_count);
 
-for (GLint i = 0; i < uniform_count; ++i)
+if (uniform_count != 0)
 {
-	std::array<GLchar, 0xff> uniform_name = {};
-	glGetActiveUniform(program_name, i, uniform_name.size(), &length, &size, &type, uniform_name.data());
+	GLint 	max_name_len = 0;
+	GLsizei length = 0;
+	GLsizei count = 0;
+	GLenum 	type = GL_NONE;
+	glGetProgramiv(program_name, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_name_len);
 	
-	uniform_info_t uniform_info = {};
-	uniform_info.location = glGetUniformLocation(program_name, uniform_name.data());
-	uniform_info.count = size;
-	
-	uniforms.emplace(std::make_pair(std::string(uniform_name.data(), length), uniform_info));
+	auto uniform_name = std::make_unique<char[]>(max_name_len);
+
+	std::unordered_map<std::string, uniform_info_t> uniforms;
+
+	for (GLint i = 0; i < uniform_count; ++i)
+	{
+		glGetActiveUniform(program_name, i, max_name_len, &length, &count, &type, uniform_name.get());
+
+		uniform_info_t uniform_info = {};
+		uniform_info.location = glGetUniformLocation(program_name, uniform_name.get());
+		uniform_info.count = count;
+
+		uniforms.emplace(std::make_pair(std::string(uniform_name.get(), length), uniform_info));
+	}
 }
 ```
 
@@ -508,7 +524,7 @@ or if you want to modify the whole array:
 ```cpp
 glProgramUniformXXv(program_name, uniforms["my_array[0]"].location, uniforms["my_array[0]"].count, my_array);
 ```
-*Ideally you would use UBOs when dealing with collections of data like arrays and structs.*
+*Ideally UBOs would be used when dealing with collections of data **larger than 16K** as it may be slower than packing the data into vec4s and using [`glProgramUniform4f`](http://docs.gl/gl4/glProgramUniform).*
 
 With this you can store the uniform datatype and check it within your uniform update functions.
 
@@ -668,6 +684,8 @@ The fact that we can specify which mipmaps we want in the view means that we can
 [ARB_texture_view](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_texture_view.txt)
 
 ## Setting up Mix & Match Shaders with Program Pipelines
+
+* Nvidia drivers have spotty performance as they lean towards monolithic shader programs, so it may be better suited for non-performance-critical applications.
 
 [Program Pipeline](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_separate_shader_objects.txt) objects allow us to change shader stages on the fly without having to relink them.
 
