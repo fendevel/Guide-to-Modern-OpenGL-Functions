@@ -229,7 +229,7 @@ There are two ways to go about clearing a framebuffer:
 
 The most familar way
 ```c
-glBindFramebuffer(fb);
+glBindFramebuffer(GL_FRAMEBUFFER, fb);
 glClearColor(r, g, b, a);
 glClearDepth(d);
 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -237,7 +237,7 @@ glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 and the more versatile per-attachment way
 ```c
-glBindFramebuffer(fb);
+glBindFramebuffer(GL_FRAMEBUFFER, fb);
 glClearBufferfv(GL_COLOR, col_buff_index, &rgba);
 glClearBufferfv(GL_DEPTH, 0, &d);
 ```
