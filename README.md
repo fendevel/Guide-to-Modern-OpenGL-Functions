@@ -570,7 +570,7 @@ To allocate a 2D texture array we do this:
 GLuint texarray = 0;
 GLsizei width = 512, height = 512, layers = 3;
 glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texarray);
-glTextureStorage3D(texarray, 0, GL_RGBA8, width, height, layers);
+glTextureStorage3D(texarray, 1, GL_RGBA8, width, height, layers);
 ```
 
 [`glTextureStorage3D`](http://docs.gl/gl4/glTexStorage3D) has been modified to accommodate 2d array textures which I imagine is confusing at first but there's a pattern: the last dimension parameter acts as the layer specifier, so if you were to allocate a 1D texture array you would have to use [`glTextureStorage2D`](http://docs.gl/gl4/glTexStorage2D) with height as the layer capacity.
