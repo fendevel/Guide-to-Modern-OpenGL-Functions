@@ -172,15 +172,13 @@ for (size_t face = 0; face < 6; ++face)
 
 If you look at the OpenGL function listing you will see a lack of `glTextureImage` and here's why:
 
-`glTexImage` left a lot to be desired, it's very easy to end up with invalid textures because the default filtering requires several mipmap levels to be present (`GL_NEAREST_MIPMAP_LINEAR` and a `GL_TEXTURE_MAX_LEVEL` of `1000`) with all the mipmap storage needing to be specified individually, you could even give them a bunch of inconsistent sizes and the driver would only check for consistency at draw time.
-
-The answer to this was [`glTexStorage`](http://docs.gl/gl4/glTexStorage2D), when it came time for DSA they left the replaced `glTexImage` in the dust.
+Having to build up a valid texture object piecewise as you would with `glTexImage` left plenty of room for mistakes and required the driver to do validation as late as possible, and so when it came time to specify a new set of texture functions they took the opportunity to address this rough spot. The result was [`glTexStorage`](http://docs.gl/gl4/glTexStorage2D).
 
 Storage provides a way to create complete textures with checks done on-call, which means less room for error, it solves most if not all problems brought on by mutable textures. 
 
 tl;dr "Immutable textures are a more robust approach to handle textures"
 
-* However be mindful as allocating immutable textures requires physical video memory to be available upfront rather than having the driver deal with when and where the data goes, this means it's very possible to unintentionally exceed your card's capacity. 
+* However be mindful as allocating immutable textures requires physical video memory to be available upfront rather than having the driver deal with when and where the data goes, this means it's very possible to unintentionally exceed your card's capacity.
 
 Sources: [ARB_texture_storage](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_texture_storage.txt), ["What does glTexStorage do?"](https://stackoverflow.com/questions/9224300/what-does-gltexstorage-do), ["What's the DSA version of glTexImage2D?"](https://gamedev.stackexchange.com/questions/134177/whats-the-dsa-version-of-glteximage2d)
 
@@ -227,7 +225,7 @@ glBlitNamedFramebuffer(fbo_src, fbo_dst, src_x, src_y, src_w, src_h, dst_x, dst_
 
 There are two ways to go about clearing a framebuffer:
 
-The most familar way
+The more familar way
 ```c
 glBindFramebuffer(GL_FRAMEBUFFER, fb);
 glClearColor(r, g, b, a);
@@ -276,7 +274,7 @@ None of the DSA glBuffer functions ask for the buffer target and is only require
 If you aren't familiar with the application of [`glVertexAttribPointer`](http://docs.gl/gl4/glVertexAttribPointer) it is used like so:
 
 ```c
-struct vertex_t { vec3 pos, nrm; vec2 tex; };
+struct vertex { vec3 pos, nrm; vec2 tex; };
 
 glBindVertexArray(vao);
 glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -285,9 +283,9 @@ glEnableVertexAttribArray(0);
 glEnableVertexAttribArray(1);
 glEnableVertexAttribArray(2);
 
-glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)(offsetof(vertex_t, pos));
-glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)(offsetof(vertex_t, nrm));
-glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)(offsetof(vertex_t, tex));
+glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)(offsetof(vertex, pos));
+glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)(offsetof(vertex, nrm));
+glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)(offsetof(vertex, tex));
 ```
 
 [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat) isn't much different, the main thing with it is that it's one out of a two-parter with [`glVertexAttribBinding`](http://docs.gl/gl4/glVertexAttribBinding).
@@ -297,18 +295,18 @@ In order to get out the same effect as the previous snippet we first need to mak
 Here's how they're both put into action:
 
 ```c
-struct vertex_t { vec3 pos, nrm; vec2 tex; };
+struct vertex { vec3 pos, nrm; vec2 tex; };
 
 glBindVertexArray(vao);
-glBindVertexBuffer(0, vbo, 0, sizeof(vertex_t));
+glBindVertexBuffer(0, vbo, 0, sizeof(vertex));
 
 glEnableVertexAttribArray(0);
 glEnableVertexAttribArray(1);
 glEnableVertexAttribArray(2);
 
-glVertexAttribFormat(0, 3, GL_FLOAT, GL_FALSE, offsetof(vertex_t, pos));
-glVertexAttribFormat(1, 3, GL_FLOAT, GL_FALSE, offsetof(vertex_t, nrm));
-glVertexAttribFormat(2, 2, GL_FLOAT, GL_FALSE, offsetof(vertex_t, tex));
+glVertexAttribFormat(0, 3, GL_FLOAT, GL_FALSE, offsetof(vertex, pos));
+glVertexAttribFormat(1, 3, GL_FLOAT, GL_FALSE, offsetof(vertex, nrm));
+glVertexAttribFormat(2, 2, GL_FLOAT, GL_FALSE, offsetof(vertex, tex));
 
 glVertexAttribBinding(0, 0);
 glVertexAttribBinding(1, 0);
@@ -318,15 +316,15 @@ glVertexAttribBinding(2, 0);
 Although this is the newer way of going about it this isn't fully DSA as we still need to make that VAO bind call, to go all the way we need to transform [`glEnableVertexAttribArray`](http://docs.gl/gl4/glEnableVertexAttribArray), [`glVertexAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat), [`glVertexAttribBinding`](http://docs.gl/gl4/glVertexAttribBinding), and [`glBindVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer) into [`glEnableVertexArrayAttrib`](http://docs.gl/gl4/glEnableVertexAttribArray), [`glVertexArrayAttribFormat`](http://docs.gl/gl4/glVertexAttribFormat), [`glVertexArrayAttribBinding`](http://docs.gl/gl4/glVertexAttribBinding), and [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer).
 
 ```c
-glVertexArrayVertexBuffer(vao, 0, data->vbo, 0, sizeof(vertex_t));
+glVertexArrayVertexBuffer(vao, 0, data->vbo, 0, sizeof(vertex));
 
 glEnableVertexArrayAttrib(vao, 0);
 glEnableVertexArrayAttrib(vao, 1);
 glEnableVertexArrayAttrib(vao, 2);
 
-glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(vertex_t, pos));
-glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(vertex_t, nrm));
-glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(vertex_t, tex));
+glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(vertex, pos));
+glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(vertex, nrm));
+glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(vertex, tex));
 
 glVertexArrayAttribBinding(vao, 0, 0);
 glVertexArrayAttribBinding(vao, 1, 0);
@@ -339,23 +337,23 @@ All together this is how uploading an indexed model with *only* DSA should look:
 
 ```c
 glCreateBuffers(1, &vbo);	
-glNamedBufferStorage(vbo, sizeof(vertex_t)*vertex_count, vertices, GL_DYNAMIC_STORAGE_BIT);
+glNamedBufferStorage(vbo, sizeof(vertex)*vertex_count, vertices, GL_DYNAMIC_STORAGE_BIT);
 
 glCreateBuffers(1, &ibo);
 glNamedBufferStorage(ibo, sizeof(uint32_t)*index_count, indices, GL_DYNAMIC_STORAGE_BIT);
 
 glCreateVertexArrays(1, &vao);
 
-glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(vertex_t));
+glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(vertex));
 glVertexArrayElementBuffer(vao, ibo);
 
 glEnableVertexArrayAttrib(vao, 0);
 glEnableVertexArrayAttrib(vao, 1);
 glEnableVertexArrayAttrib(vao, 2);
 
-glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(vertex_t, pos));
-glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(vertex_t, nrm));
-glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(vertex_t, tex));
+glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(vertex, pos));
+glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(vertex, nrm));
+glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(vertex, tex));
 
 glVertexArrayAttribBinding(vao, 0, 0);
 glVertexArrayAttribBinding(vao, 1, 0);
@@ -414,7 +412,6 @@ void message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 		case GL_DEBUG_SEVERITY_HIGH: return "HIGH";
 		}
 	}();
-
 	std::cout << src_str << ", " << type_str << ", " << severity_str << ", " << id << ": " << message << '\n';
 }
 ```
@@ -427,7 +424,7 @@ Here's how we use it to disable notifications:
 glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
 ```
 
-Something we can do is have messages fire synchronously where it will call on the same thread as the context and from within the OpenGL call. This way we can gaurantee function call order and this means if we were to add a breakpoint into the definition of our callback we could traverse the call stack and locate the origin of the error.
+Something we can do is have messages fire synchronously where it will call on the same thread as the context and from within the OpenGL call. This way we can guarantee function call order and this means if we were to add a breakpoint into the definition of our callback we could traverse the call stack and locate the origin of the error.
 
 All it takes is another call to [`glEnable`](http://docs.gl/gl4/glEnable) with the value of `GL_DEBUG_OUTPUT_SYNCHRONOUS`, so you end up with this:
 
@@ -441,13 +438,13 @@ Farewell, `glGetError`.
 
 ## Storing Index and Vertex Data Under Single Buffer
 
-Any material on OpenGL separates vertex and index data between buffers, this is because the [vertex_buffer_object](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_vertex_buffer_object.txt) spec strongly urges to do so, the reasoning for this is that different GL implementations may have different memory type requirements, so having the index data in its own buffer allows the driver to decide the optimal storage strategy.
+Most material on OpenGL that touch on indexed drawing will separate vertex and index data between buffers, this is because the [vertex_buffer_object](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_vertex_buffer_object.txt) spec strongly recommends to do so, the reasoning for this is that different GL implementations may have different memory type requirements, so having the index data in its own buffer allows the driver to decide the optimal storage strategy.
 
 This was useful when there were were several ways to attach GPUs to the main system, technically there still are, but AGP was completely phased out by PCIe about a decade ago and regular PCI ports aren't really used for this anymore save a few cases.
 
-So managing two buffers for indexed geometry is no longer advantageous.
+The overhead that comes with managing an additional buffer for indexed geometry isn't as justifiable a trade off as it used to be.
 
-All we need to do is store the indices before the vertex data and tell OpenGL where the vertices begin, this is achieved with [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer)'s offset parameter.
+We store the vertices and indices at known byte offsets and pass the information to OpenGL. For the vertices we do this with [`glVertexArrayVertexBuffer`](http://docs.gl/gl4/glBindVertexBuffer)'s `offset` parameter, and indices through [`glDrawElements`](http://docs.gl/gl4/glDrawElements)'s `indices` parameter.
 
 ```cpp
 GLint alignment = GL_NONE;
@@ -456,24 +453,35 @@ glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment);
 GLuint vao 	= GL_NONE;
 GLuint buffer 	= GL_NONE;
 
-auto const ind_len = GLsizei(ind_buffer.size() * sizeof(element_t));
-auto const vrt_len = GLsizei(vrt_buffer.size() * sizeof(vertex_t));
+auto const ind_len = GLsizei(ind_count * sizeof(element_t));
+auto const vrt_len = GLsizei(vrt_count * sizeof(vertex));
 
 auto const ind_len_aligned = align(ind_len, alignment);
 auto const vrt_len_aligned = align(vrt_len, alignment);
 
+auto const ind_offset = vrt_len_aligned;
+auto const vrt_offset = 0;
+
 glCreateBuffers(1, &buffer);
 glNamedBufferStorage(buffer, ind_len_aligned + vrt_len_aligned, nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-glNamedBufferSubData(buffer, 0		    , ind_len, ind_buffer.data());
-glNamedBufferSubData(buffer, ind_len_aligned, vrt_len, vrt_buffer.data());
+glNamedBufferSubData(buffer, ind_offset, ind_len, ind_data);
+glNamedBufferSubData(buffer, vrt_offset, vrt_len, vrt_data);
 
 glCreateVertexArrays(1, &vao);
-glVertexArrayVertexBuffer(vao, 0, buffer, ind_len_aligned, sizeof(vertex_t));
+glVertexArrayVertexBuffer(vao, 0, buffer, vrt_offset, sizeof(vertex));
 glVertexArrayElementBuffer(vao, buffer);
 
 //continue with setup
 ```
+
+And then when it's time to render:
+
+```c
+glDrawElements(GL_TRIANGLES, ind_count, indices_format, (void *) ind_offset);
+```
+
+If you're curious why the pointer cast is necessary it's because in immediate mode you'd pass in your index buffer directly from host memory but in retained mode it's an offset into the buffer store.
 
 ## Ideal Way Of Retrieving All Uniform Names
 
@@ -482,7 +490,7 @@ There is material out there that teach beginners to retrieve uniform information
 Here is how it should be done:
 
 ```cpp
-struct uniform_info_t
+struct uniform_info
 { 
 	GLint location;
 	GLsizei count;
@@ -501,7 +509,7 @@ if (uniform_count != 0)
 	
 	auto uniform_name = std::make_unique<char[]>(max_name_len);
 
-	std::unordered_map<std::string, uniform_info_t> uniforms;
+	std::unordered_map<std::string, uniform_info> uniforms;
 
 	for (GLint i = 0; i < uniform_count; ++i)
 	{
@@ -626,8 +634,8 @@ GLsizei image_w, image_h, c, tile_w = 16, tile_h = 16;
 stbi_uc* pixels = stbi_load(".\\textures\\tiles_packed.png", &image_w, &image_h, &c, STBI_rgb_alpha);
 GLuint tileset;
 GLsizei
-	tiles_x = (image_w / tile_w),
-	tiles_y = (image_h / tile_h),
+	tiles_x = image_w / tile_w,
+	tiles_y = image_h / tile_h,
 	tile_count = tiles_x * tiles_y;
 
 glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &tileset);
@@ -792,17 +800,17 @@ constexpr GLbitfield
 	storage_flags = GL_DYNAMIC_STORAGE_BIT | mapping_flags;
 ```
 
-**GL_MAP_COHERENT_BIT**: 	This flag ensures writes will be seen automagically by the server when done from the client and vice versa.
+**GL_MAP_COHERENT_BIT**: 	This flag ensures writes will be seen by the server when done from the client and vice versa.
 
-**GL_MAP_PERSISTENT_BIT**: 	This tells our driver you wish to hold onto the data despite what it's doing.
+**GL_MAP_PERSISTENT_BIT**: 	This tells our driver you wish to keep the mapping through subsequent OpenGL operations.
 
-**GL_MAP_READ_BIT**:	Lets OpenGL know we wish to read from the buffer so that it doesn't freak out when we do.
+**GL_MAP_READ_BIT**:	Tells OpenGL we wish to read from the buffer.
 
 **GL_MAP_WRITE_BIT**:	Lets OpenGL know we're gonna write to it, if you don't specify this *anything could happen*.
 
 If we don't use these flags for the storage creation GL will reject your mapping request with scorn. What's worse is that you absolutely won't know unless you're doing some form of error checking.
 
-Setting up our immutable storage is very simple:
+Setting up our immutable storage is straight forward:
 ```cpp
 glCreateBuffers(1, &name);
 glNamedBufferStorage(name, size, nullptr, storage_flags);
@@ -813,7 +821,8 @@ Here is how we get that pointer we're after:
 ```cpp
 void* ptr = glMapNamedBufferRange(name, offset, size, mapping_flags);
 ```
-You don't have to map it every frame and I advise against it as it harms overall performance.
+
+I recommend mapping it as infrequently as possible because the process of mapping the buffer isn't particularly fast. In most cases you only need to do it just the once.
 
 Make sure to unmap the buffer before deleting it:
 ```cpp
@@ -821,7 +830,7 @@ glUnmapNamedBuffer(name);
 glDeleteBuffers(1, &name);
 ```
 
-If C++20 is available you can drop it into a span.
+If C++20 is available you can drop it into a std::span.
 
 ## More information
  * [OpenGL wiki](https://www.khronos.org/opengl/wiki/).
