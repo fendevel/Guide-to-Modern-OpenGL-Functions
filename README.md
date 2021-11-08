@@ -438,7 +438,7 @@ Farewell, `glGetError`.
 
 ## Storing Index and Vertex Data Under Single Buffer
 
-Most material on OpenGL that touch on indexed drawing will separate vertex and index data between buffers, this is because the [vertex_buffer_object](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_vertex_buffer_object.txt) spec strongly recommends to do so, the reasoning for this is that different GL implementations may have different memory type requirements, so having the index data in its own buffer allows the driver to decide the optimal storage strategy.
+Most material on OpenGL that touch on indexed drawing will separate vertex and index data between buffers, this is because the [vertex_buffer_object](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_vertex_buffer_object.txt) spec strongly recommends to do so. The reasoning for this is that different GL implementations may have different memory type requirements, so having the index data in its own buffer allows the driver to decide the optimal storage strategy.
 
 This was useful when there were were several ways to attach GPUs to the main system, technically there still are, but AGP was completely phased out by PCIe about a decade ago and regular PCI ports aren't really used for this anymore save a few cases.
 
