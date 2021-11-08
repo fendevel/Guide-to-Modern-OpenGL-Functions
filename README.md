@@ -821,13 +821,9 @@ glUnmapNamedBuffer(name);
 glDeleteBuffers(1, &name);
 ```
 
-If you're using C++ and GSL you can drop it into a span:
-```cpp
-gsl::span<vertex_t> vertices(reinterpret_cast<vertex_t*>(glMapNamedBufferRange(name, 0, size, mapping_flags)), size);
-```
+If C++20 is available you can drop it into a span.
 
 ## More information
  * [OpenGL wiki](https://www.khronos.org/opengl/wiki/).
  * [docs.GL](http://docs.gl/)
  * [DSA ARB specification](https://www.opengl.org/registry/specs/ARB/direct_state_access.txt).
-##### Have something you would like me to cover and/or fix? Let me know! My Discord is `Fen#0110`.
